@@ -405,7 +405,7 @@ module.exports = async (req, res, pool, requests) => {
 			return;
 		}
 		try {
-			for (const item in body) args[item] = body;
+			for (const item in body) args[item] = typeof body[item] != 'string' ? JSON.stringify(body[item]) : body[item];
 		} catch (err) {
 			res.end(JSON.stringify({ error: 'Error handling request body' }))
 			return;

@@ -5,7 +5,7 @@ const favicon = fs.readFileSync('favicon.ico');
 const config = require('./config.json');
 
 function addCondition(path, arg, value, conditions, vars, placeholder) {
-        if (value == null) value = 'null';
+	if (value == null) value = 'null';
 	if (['servers', 'count'].includes(path)) {
 		switch (arg) {
 			case 'playerCount': {
@@ -175,15 +175,15 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 				vars.push(...value.map(a => parseInt(a - 32768)));
 				break;
 			}
-                        case 'enforcesSecureChat': {
-                                if (!Array.isArray(value)) value = [value];
-                                if (value.length == 0) return { placeholder };
-                                value = value.map(a => a.toString().toLowerCase());
-                                for (let item of value) if (!['true', 'false', 'null'].includes(item)) return { error: `Invalid value for parameter "enforcesSecureChat" (${item} is not a boolean)` };
-                                conditions.push(`${Array(value.length).fill().map((a, i) => value[i] == 'null' ? 's.enforcessecurechat IS NULL' : `s.enforcessecurechat = $${placeholder++}`).join(' OR ')}`);
-                                vars.push(...value.filter(a => a != 'null').map(a => a == 'true'));
-                                break;
-                        }
+			case 'enforcesSecureChat': {
+					if (!Array.isArray(value)) value = [value];
+					if (value.length == 0) return { placeholder };
+					value = value.map(a => a.toString().toLowerCase());
+					for (let item of value) if (!['true', 'false', 'null'].includes(item)) return { error: `Invalid value for parameter "enforcesSecureChat" (${item} is not a boolean)` };
+					conditions.push(`${Array(value.length).fill().map((a, i) => value[i] == 'null' ? 's.enforcessecurechat IS NULL' : `s.enforcessecurechat = $${placeholder++}`).join(' OR ')}`);
+					vars.push(...value.filter(a => a != 'null').map(a => a == 'true'));
+					break;
+			}
 			case 'country': {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
@@ -392,8 +392,8 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 module.exports = async (req, res, pool, requests) => {
 	const parsedUrl = url.parse(req.url);
 	console.log(parsedUrl.path);
-	let endpoint = parsedUrl.pathname.split('/')[2];
-	if (req.method != 'GET' && req.method != 'POST') {
+	let endpoint = parsedUrl.pathname.split('/')[2] || '/';
+	if (!['GET', 'POST'].includes(req.method)) {
 		res.statusCode = 405;
 		res.end();
 		return;
@@ -405,7 +405,7 @@ module.exports = async (req, res, pool, requests) => {
 	res.setHeader('Content-Type', 'application/json');
 	res.statusCode = 400;
 	
-	if (endpoint.toLowerCase() == '/favicon.ico') {
+	if (endpoint.toLowerCase() == 'favicon.ico') {
 		res.setHeader('Content-Type', 'image/x-icon');
 		res.end(favicon);
 		return;
@@ -426,7 +426,7 @@ module.exports = async (req, res, pool, requests) => {
 			return;
 		}
 		try {
-			for (const item in body) args[item] = body;
+			for (const item in body) args[item] = typeof body[item] != 'string' ? JSON.stringify(body[item]) : body[item];
 		} catch (err) {
 			res.end(JSON.stringify({ error: 'Error handling request body' }))
 			return;

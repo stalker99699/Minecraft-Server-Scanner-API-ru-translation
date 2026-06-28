@@ -3,11 +3,11 @@
     "maxCredits": 20000,
     "port": 80,
     "sql": {
-        "host": "",
+        "host": "188.245.91.130",
         "port": 5432,
-        "user": "",
-        "password": "",
-        "database": ""
+        "user": "postgres",
+        "password": "&e8$zXBQ%_K&d6X",
+        "database": "mcss"
     },
-    "exclude": [""]
+    "exclude": []
 }
