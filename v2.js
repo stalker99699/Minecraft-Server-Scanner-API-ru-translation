@@ -333,7 +333,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 
 module.exports = async (req, res, pool, requests) => {
 	const parsedUrl = new URL(`https://localhost${req.url}`);
-	console.log(parsedUrl.path);
+	console.log(parsedUrl.pathname);
 	let endpoint = parsedUrl.pathname.split('/')[2] || '/';
 	if (!['GET', 'POST'].includes(req.method)) {
 		res.statusCode = 405;
