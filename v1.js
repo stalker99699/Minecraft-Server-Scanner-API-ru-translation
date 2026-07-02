@@ -4,7 +4,7 @@ const querystring = require('querystring');
 const favicon = fs.readFileSync('favicon.ico');
 const config = require('./config.json');
 
-function addCondition(path, arg, value, conditions, vars, placeholder) {
+function addCondition(path, arg, value, cteConditions, conditions, vars, placeholder) {
 	if (value == null) value = 'null';
 	if (['servers', 'count'].includes(path)) {
 		switch (arg) {
@@ -52,7 +52,7 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
 				value = value.map(a => typeof a == 'string' ? a : String(a));
-				conditions.push(`EXISTS (SELECT 1 FROM history h JOIN players p ON h.playerId = p.playerId WHERE h.serverId = s.serverId AND h.lastSession = s.lastSeen AND p.name IN (${new Array(value.length).fill().map(a => `$${placeholder++}`)}) LIMIT 1)`);
+				cteConditions.push(`p.lastSession = s.lastSeen AND ${caseInsensitive ? 'LOWER(p.name)' : 'p.name'} IN (${new Array(value.length).fill().map(a => `$${placeholder++}`)})`);
 				vars.push(...value);
 				break;
 			}
@@ -60,7 +60,7 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
 				value = value.map(a => typeof a == 'string' ? a : String(a));
-				conditions.push(`EXISTS (SELECT 1 FROM history h JOIN players p ON h.playerId = p.playerId WHERE h.serverId = s.serverId AND h.lastSession = s.lastSeen AND p.id IN (${new Array(value.length).fill().map(a => `$${placeholder++}`)}) LIMIT 1)`);
+				cteConditions.push(`p.lastSession = s.lastSeen AND p.id IN (${new Array(value.length).fill().map(a => `$${placeholder++}`)})`);
 				vars.push(...value);
 				break;
 			}
@@ -68,7 +68,7 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
 				value = value.map(a => typeof a == 'string' ? a : String(a));
-				conditions.push(`EXISTS (SELECT 1 FROM history h JOIN players p ON h.playerId = p.playerId WHERE h.serverId = s.serverId AND p.name IN (${new Array(value.length).fill().map(a => `$${placeholder++}`)}) LIMIT 1)`);
+				cteConditions.push(`${caseInsensitive ? 'LOWER(p.name)' : 'p.name'} IN (${new Array(value.length).fill().map(a => `$${placeholder++}`)})`);
 				vars.push(...value);
 				break;
 			}
@@ -76,7 +76,7 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
 				value = value.map(a => typeof a == 'string' ? a : String(a));
-				conditions.push(`EXISTS (SELECT 1 FROM history h JOIN players p ON h.playerId = p.playerId WHERE h.serverId = s.serverId AND p.id IN (${new Array(value.length).fill().map(a => `$${placeholder++}`)}) LIMIT 1)`);
+				cteConditions.push(`${caseInsensitive ? 'LOWER(p.id)' : 'p.id'} IN (${new Array(value.length).fill().map(a => `$${placeholder++}`)})`);
 				vars.push(...value);
 				break;
 			}
@@ -176,13 +176,13 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 				break;
 			}
 			case 'enforcesSecureChat': {
-					if (!Array.isArray(value)) value = [value];
-					if (value.length == 0) return { placeholder };
-					value = value.map(a => a.toString().toLowerCase());
-					for (let item of value) if (!['true', 'false', 'null'].includes(item)) return { error: `Invalid value for parameter "enforcesSecureChat" (${item} is not a boolean)` };
-					conditions.push(`${Array(value.length).fill().map((a, i) => value[i] == 'null' ? 's.enforcessecurechat IS NULL' : `s.enforcessecurechat = $${placeholder++}`).join(' OR ')}`);
-					vars.push(...value.filter(a => a != 'null').map(a => a == 'true'));
-					break;
+				if (!Array.isArray(value)) value = [value];
+				if (value.length == 0) return { placeholder };
+				value = value.map(a => a.toString().toLowerCase());
+				for (let item of value) if (!['true', 'false', 'null'].includes(item)) return { error: `Invalid value for parameter "enforcesSecureChat" (${item} is not a boolean)` };
+				conditions.push(`${Array(value.length).fill().map((a, i) => value[i] == 'null' ? 's.enforcessecurechat IS NULL' : `s.enforcessecurechat = $${placeholder++}`).join(' OR ')}`);
+				vars.push(...value.filter(a => a != 'null').map(a => a == 'true'));
+				break;
 			}
 			case 'country': {
 				if (!Array.isArray(value)) value = [value];
@@ -390,7 +390,7 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 }
 
 module.exports = async (req, res, pool, requests) => {
-	const parsedUrl = url.parse(req.url);
+	const parsedUrl = new URL(`https://localhost${req.url}`);
 	console.log(parsedUrl.path);
 	let endpoint = parsedUrl.pathname.split('/')[2] || '/';
 	if (!['GET', 'POST'].includes(req.method)) {
@@ -415,7 +415,7 @@ module.exports = async (req, res, pool, requests) => {
 	if (userIp.startsWith('::ffff:')) userIp = userIp.slice(7);
 	if (!config.exclude.includes(userIp) && config.cloudflare) userIp = req.headers['cf-connecting-ip'];
 	if (requests[userIp] == null) requests[userIp] = 0;
-	let args = querystring.parse(parsedUrl.query);
+	let args = Object.fromEntries(parsedUrl.searchParams.entries());
 	if (req.method == 'POST') {
 		var body = '';
 		await new Promise(resolve => req.on('data', (chunk) => body += chunk).on('end', resolve));
@@ -426,7 +426,7 @@ module.exports = async (req, res, pool, requests) => {
 			return;
 		}
 		try {
-			for (const item in body) args[item] = typeof body[item] != 'string' ? JSON.stringify(body[item]) : body[item];
+			for (const item in body) args[item] = (typeof body[item] == 'string' ? body[item] : JSON.stringify(body[item]));
 		} catch (err) {
 			res.end(JSON.stringify({ error: 'Error handling request body' }))
 			return;
@@ -451,6 +451,7 @@ module.exports = async (req, res, pool, requests) => {
 	var skip = 0;
 	var limit = 20;
 	let placeholder = 1;
+	let cteConditions = [];
 	let conditions = [];
 	let vars = [];
 	let sort;
@@ -560,7 +561,7 @@ module.exports = async (req, res, pool, requests) => {
 				try {
 					item = JSON.parse(item);
 				} catch (err) {}
-				let response = addCondition(endpoint, key, item, conditions, vars, placeholder);
+				let response = addCondition(endpoint, key, item, cteConditions, conditions, vars, placeholder);
 				if (response.error != null) {
 					res.end(JSON.stringify({ error: response.error }));
 					return;
@@ -664,7 +665,7 @@ module.exports = async (req, res, pool, requests) => {
 				try {
 					item = JSON.parse(item);
 				} catch (err) {}
-				let response = addCondition(endpoint, key, item, conditions, vars, placeholder);
+				let response = addCondition(endpoint, key, item, cteConditions, conditions, vars, placeholder);
 				if (response.error != null) {
 					res.end(JSON.stringify({ error: response.error }));
 					return;
@@ -706,14 +707,16 @@ module.exports = async (req, res, pool, requests) => {
 		if (!config.exclude.includes(userIp)) {
 			if (requests[userIp] >= config.maxCredits) {
 				res.statusCode = 429;
-				res.end(JSON.stringify({ error: 'Too many requests (Limit: 10,000 credits per hour)' }));
+				res.end(JSON.stringify({ error: `Too many requests (Limit: ${config.maxCredits.toLocaleString()} credits per hour)` }));
 				return;
 			}
 			if (requests[userIp] + limit > config.maxCredits) limit = Math.max(0, config.maxCredits - requests[userIp]);
 			requests[userIp] += Math.max(10, limit);
 		}
 		
-		let query = `SELECT * FROM servers s ${conditions.length > 0 ? 'WHERE' : ''} ${conditions.map(a => `(${a})`).join(' AND ')} ${sort == null ? '' : `ORDER BY ${sort} ${descending ? 'DESC' : ''}`} LIMIT ${limit} OFFSET ${skip}`
+		let cteServers = `WITH servers AS (SELECT DISTINCT ON (p.serverId) s.* FROM playerhistory p JOIN servers s ON s.serverId = p.serverId WHERE ${cteConditions.map(a => `(${a})`).join(' AND ')})`;
+		let where = conditions.length == 0 ? '' : `WHERE ${conditions.map(a => `(${a})`).join(' AND ')}`;
+		let query = `${cteConditions.length > 0 ? cteServers : ''} SELECT * FROM servers s ${where} ${sort == null ? '' : `ORDER BY ${sort} ${descending ? 'DESC' : ''}`} LIMIT ${limit} OFFSET ${skip}`;
 		let result;
 		try {
 			result = await pool.query(query, vars);
@@ -768,14 +771,16 @@ module.exports = async (req, res, pool, requests) => {
 		if (!config.exclude.includes(userIp)) {
 			if (requests[userIp] >= config.maxCredits) {
 				res.statusCode = 429;
-				res.end(JSON.stringify({ error: 'Too many requests (Limit: 10,000 credits per hour)' }));
+				res.end(JSON.stringify({ error: `Too many requests (Limit: ${config.maxCredits.toLocaleString()} credits per hour)` }));
 				return;
 			}
 			if (requests[userIp] + limit > config.maxCredits) limit = Math.max(0, config.maxCredits - requests[userIp]);
 			requests[userIp] += 100;
 		}
 		
-		let query = `SELECT COUNT(*) FROM servers s ${conditions.length > 0 ? 'WHERE' : ''} ${conditions.map(a => `(${a})`).join(' AND ')}`;
+		let cteServers = `WITH servers AS (SELECT DISTINCT ON (p.serverId) s.* FROM playerhistory p JOIN servers s ON s.serverId = p.serverId WHERE ${cteConditions.map(a => `(${a})`).join(' AND ')})`;
+		let where = conditions.length == 0 ? '' : `WHERE ${conditions.map(a => `(${a})`).join(' AND ')}`;
+		let query = `${cteConditions.length > 0 ? cteServers : ''} SELECT COUNT(*) FROM servers s ${where}`;
 		let result;
 		try {
 			result = await pool.query(query, vars);
@@ -802,13 +807,13 @@ module.exports = async (req, res, pool, requests) => {
 		if (!config.exclude.includes(userIp)) {
 			if (requests[userIp] >= config.maxCredits) {
 				res.statusCode = 429;
-				res.end(JSON.stringify({ error: 'Too many requests (Limit: 10,000 credits per hour)' }));
+				res.end(JSON.stringify({ error: `Too many requests (Limit: ${config.maxCredits.toLocaleString()} credits per hour)` }));
 				return;
 			}
 			requests[userIp] += 5;
 		}
 
-		let query = `SELECT DISTINCT ON (p.playerId) * FROM servers s JOIN history h ON h.serverId = s.serverId JOIN players p ON h.playerId = p.playerId WHERE ${conditions.map(a => `(${a})`).join(' AND ')}`;
+		let query = `SELECT * FROM servers s JOIN playerhistory p ON p.serverId = s.serverId WHERE ${conditions.map(a => `(${a})`).join(' AND ')}`;
 		let result;
 		try {
 			result = await pool.query(query, vars);
@@ -839,7 +844,7 @@ module.exports = async (req, res, pool, requests) => {
 		if (!config.exclude.includes(userIp)) {
 			if (requests[userIp] >= config.maxCredits) {
 				res.statusCode = 429;
-				res.end(JSON.stringify({ error: 'Too many requests (Limit: 10,000 credits per hour)' }));
+				res.end(JSON.stringify({ error: `Too many requests (Limit: ${config.maxCredits.toLocaleString()} credits per hour)` }));
 				return;
 			}
 			if (requests[userIp] + limit > config.maxCredits) limit = Math.max(0, config.maxCredits - requests[userIp]);
@@ -904,7 +909,7 @@ module.exports = async (req, res, pool, requests) => {
 		if (!config.exclude.includes(userIp)) {
 			if (requests[userIp] >= config.maxCredits) {
 				res.statusCode = 429;
-				res.end(JSON.stringify({ error: 'Too many requests (Limit: 10,000 credits per hour)' }));
+				res.end(JSON.stringify({ error: `Too many requests (Limit: ${config.maxCredits.toLocaleString()} credits per hour)` }));
 				return;
 			}
 			if (requests[userIp] + limit > config.maxCredits) limit = Math.max(0, config.maxCredits - requests[userIp]);

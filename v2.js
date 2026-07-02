@@ -1,104 +1,89 @@
-// This version has been discontinued and is only here for archival purposes.
+/*
+Major changes:
+- new includePlayers endpoint returns player history in /servers responses
+- /playerHistory has been removed
+- you can now put args in the "data" property of an object to allow for additional settings to be included
+  - caseInsensitive option added for onlinePlayer and playerHistory
+*/
+
 
 const fs = require('fs');
 const url = require('url');
-const querystring = require('querystring');
 const favicon = fs.readFileSync('favicon.ico');
 const config = require('./config.json');
 
-function addCondition(path, arg, value, conditions, vars, placeholder) {
-	if (['/servers', '/count'].includes(path)) {
+function addCondition(path, arg, value, cteConditions, conditions, vars, placeholder, options) {
+	if (value == null) value = 'null';
+	if (['servers', 'count'].includes(path)) {
 		switch (arg) {
 			case 'playerCount': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "playerCount" (${item} is not a number)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.playerCount = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
 				break;
 			}
 			case 'minPlayers': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "minPlayers" (${item} is not a number)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.playerCount >= $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
 				break;
 			}
 			case 'maxPlayers': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "maxPlayers" (${item} is not a number)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.playerCount <= $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
 				break;
 			}
 			case 'playerLimit': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "playerLimit" (${item} is not a number)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.playerLimit = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
 				break;
 			}
 			case 'full': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				value = value.map(a => a.toString().toLowerCase());
 				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Invalid value for parameter "full" (${item} is not a boolean)` };
 				conditions.push(`${Array(value.length).fill().map((a, i) => `s.playerCount ${value[i] == 'true' ? '>=' : '<'} s.playerLimit`).join(' OR ')}`);
 				break;
 			}
 			case 'onlinePlayer': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				value = value.map(a => typeof a == 'string' ? a : String(a));
-				conditions.push(`EXISTS (SELECT 1 FROM history h JOIN players p ON h.playerId = p.playerId WHERE h.serverId = s.serverId AND h.lastSession = s.lastSeen AND p.name IN (${new Array(value.length).fill().map(a => `$${placeholder++}`)}) LIMIT 1)`);
+				if (options.caseInsensitive) value = value.map(a => a.toLowerCase());
+				cteConditions.push(`p.lastSession = s.lastSeen AND ${options.caseInsensitive ? 'LOWER(p.name)' : 'p.name'} IN (${new Array(value.length).fill().map(a => `$${placeholder++}`)})`);
 				vars.push(...value);
 				break;
 			}
 			case 'onlineUuid': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				value = value.map(a => typeof a == 'string' ? a : String(a));
-				conditions.push(`EXISTS (SELECT 1 FROM history h JOIN players p ON h.playerId = p.playerId WHERE h.serverId = s.serverId AND h.lastSession = s.lastSeen AND p.id IN (${new Array(value.length).fill().map(a => `$${placeholder++}`)}) LIMIT 1)`);
+				cteConditions.push(`p.lastSession = s.lastSeen AND p.id IN (${new Array(value.length).fill().map(a => `$${placeholder++}`)})`);
 				vars.push(...value);
 				break;
 			}
 			case 'playerHistory': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				value = value.map(a => typeof a == 'string' ? a : String(a));
-				conditions.push(`EXISTS (SELECT 1 FROM history h JOIN players p ON h.playerId = p.playerId WHERE h.serverId = s.serverId AND p.name IN (${new Array(value.length).fill().map(a => `$${placeholder++}`)}) LIMIT 1)`);
+				if (options.caseInsensitive) value = value.map(a => a.toLowerCase());
+				cteConditions.push(`${options.caseInsensitive ? 'LOWER(p.name)' : 'p.name'} IN (${new Array(value.length).fill().map(a => `$${placeholder++}`)})`);
 				vars.push(...value);
 				break;
 			}
 			case 'uuidHistory': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				value = value.map(a => typeof a == 'string' ? a : String(a));
-				conditions.push(`EXISTS (SELECT 1 FROM history h JOIN players p ON h.playerId = p.playerId WHERE h.serverId = s.serverId AND p.id IN (${new Array(value.length).fill().map(a => `$${placeholder++}`)}) LIMIT 1)`);
+				cteConditions.push(`p.id IN (${new Array(value.length).fill().map(a => `$${placeholder++}`)})`);
 				vars.push(...value);
 				break;
 			}
 			case 'version': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				conditions.push(Array(value.length).fill().map(a => `s.version LIKE $${placeholder++}`).join(' OR '));
 				vars.push(...value);
 				break;
 			}
 			case 'protocol': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "protocol" (${item} is not a number)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.protocol = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
 				break;
 			}
 			case 'hasFavicon': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				value = value.map(a => a.toString().toLowerCase());
 				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Invalid value for parameter "hasFavicon" (${item} is not a boolean)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.hasFavicon = $${placeholder++}`).join(' OR ')}`);
@@ -106,115 +91,107 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 				break;
 			}
 			case 'description': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				conditions.push(Array(value.length).fill().map(a => `s.description LIKE $${placeholder++}`).join(' OR '));
 				vars.push(...value);
 				break;
 			}
 			case 'descriptionVector': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				conditions.push(Array(value.length).fill().map(a => `s.descriptionVector @@ plainto_tsquery('simple', $${placeholder++})`).join(' OR '));
 				vars.push(...value);
 				break;
 			}
 			case 'hasPlayerSample': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				value = value.map(a => a.toString().toLowerCase());
 				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Invalid value for parameter "hasPlayerSample" (${item} is not a boolean)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.hasPlayerSample = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => a == 'true'));
 				break;
 			}
+			case 'hasPlayerHistory': {
+				value = value.map(a => a.toString().toLowerCase());
+				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Invalid value for parameter "hasPlayerHistory" (${item} is not a boolean)` };
+				conditions.push(`${value.map(a => `${a == 'true' ? '' : 'NOT'} EXISTS (SELECT 1 FROM playerHistory p WHERE p.serverId = s.serverId LIMIT 1)`).join(' OR ')}`);
+				break;
+			}
 			case 'seenAfter': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "seenAfter" (${item} is not a number)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.lastSeen > $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
 				break;
 			}
 			case 'seenBefore': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "seenBefore" (${item} is not a number)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.lastSeen < $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
 				break;
 			}
 			case 'ip': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "ip" (${item} is not a number)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.ip = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a - 2147483648)));
 				break;
 			}
 			case 'minIp': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "minIp" (${item} is not a number)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.ip >= $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a - 2147483648)));
 				break;
 			}
 			case 'maxIp': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "maxIp" (${item} is not a number)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.ip <= $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a - 2147483648)));
 				break;
 			}
 			case 'port': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "port" (${item} is not a number)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.port = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a - 32768)));
 				break;
 			}
+			case 'enforcesSecureChat': {
+				value = value.map(a => a.toString().toLowerCase());
+				for (let item of value) if (!['true', 'false', 'null'].includes(item)) return { error: `Invalid value for parameter "enforcesSecureChat" (${item} is not a boolean)` };
+				conditions.push(`${Array(value.length).fill().map((a, i) => value[i] == 'null' ? 's.enforcessecurechat IS NULL' : `s.enforcessecurechat = $${placeholder++}`).join(' OR ')}`);
+				vars.push(...value.filter(a => a != 'null').map(a => a == 'true'));
+				break;
+			}
 			case 'country': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				conditions.push(Array(value.length).fill().map(a => `s.country = $${placeholder++}`).join(' OR '));
 				vars.push(...value);
 				break;
 			}
 			case 'org': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				conditions.push(Array(value.length).fill().map(a => `s.org LIKE $${placeholder++}`).join(' OR '));
 				vars.push(...value);
 				break;
 			}
 			case 'cracked': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				value = value.map(a => a.toString().toLowerCase());
-				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Invalid value for parameter "cracked" (${item} is not a boolean)` };
-				conditions.push(`${Array(value.length).fill().map(a => `s.cracked = $${placeholder++}`).join(' OR ')}`);
-				vars.push(...value.map(a => a == 'true'));
+				for (let item of value) if (!['true', 'false', 'null'].includes(item)) return { error: `Invalid value for parameter "cracked" (${item} is not a boolean)` };
+				conditions.push(`${Array(value.length).fill().map((a, i) => value[i] == 'null' ? 's.cracked IS NULL' :  `s.cracked = $${placeholder++}`).join(' OR ')}`);
+				vars.push(...value.filter(a => a != 'null').map(a => a == 'true'));
 				break;
 			}
 			case 'whitelisted': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				value = value.map(a => a.toString().toLowerCase());
-				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Invalid value for parameter "whitelisted" (${item} is not a boolean)` };
-				conditions.push(`${Array(value.length).fill().map(a => `s.whitelisted = $${placeholder++}`).join(' OR ')}`);
-				vars.push(...value.map(a => a == 'true'));
+				for (let item of value) if (!['true', 'false', 'null'].includes(item)) return { error: `Invalid value for parameter "whitelisted" (${item} is not a boolean)` };
+				conditions.push(`${Array(value.length).fill().map((a, i) => value[i] == 'null' ? 's.whitelisted IS NULL'  : `s.whitelisted = $${placeholder++}`).join(' OR ')}`);
+				vars.push(...value.filter(a => a != 'null').map(a => a == 'true'));
 				break;
 			}
 			case 'vanilla': {
-				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				value = value.map(a => a.toString().toLowerCase());
 				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Invalid value for parameter "vanilla" (${item} is not a boolean)` };
 				value = value.map(a => a == 'true');
 				conditions.push(`${Array(value.length).fill().map((a, i) => `s.hasForgeData = ${!value[i]} ${value[i] ? 'AND' : 'OR'} s.version ${value[i] ? '' : 'NOT'} SIMILAR TO '[0-9]\.[0-9]{1,2}(\.[0-9])?'`).join(' OR ')}`);
+				break;
+			}
+			case 'forge': {
+				value = value.map(a => a.toString().toLowerCase());
+				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Invalid value for parameter "forge" (${item} is not a boolean)` };
+				conditions.push(`${Array(value.length).fill().map(a => `s.hasForgeData = $${placeholder++}`).join(' OR ')}`);
+				vars.push(...value.map(a => a == 'true'));
 				break;
 			}
 			default: {
@@ -222,11 +199,10 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 			}
 		}
 	}
-	if (['/bedrockServers', '/bedrockCount'].includes(path)) {
+	if (['bedrockServers', 'bedrockCount'].includes(path)) {
 		switch (arg) {
 			case 'education': {
 				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				value = value.map(a => a.toString().toLowerCase());
 				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Invalid value for parameter "education" (${item} is not a boolean)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.education = $${placeholder++}`).join(' OR ')}`);
@@ -235,7 +211,6 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 			}
 			case 'playerCount': {
 				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "playerCount" (${item} is not a number)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.playerCount = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
@@ -243,7 +218,6 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 			}
 			case 'minPlayers': {
 				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "minPlayers" (${item} is not a number)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.playerCount >= $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
@@ -251,7 +225,6 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 			}
 			case 'maxPlayers': {
 				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "maxPlayers" (${item} is not a number)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.playerCount <= $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
@@ -259,7 +232,6 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 			}
 			case 'playerLimit': {
 				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "playerLimit" (${item} is not a number)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.playerLimit = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
@@ -267,7 +239,6 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 			}
 			case 'full': {
 				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				value = value.map(a => a.toString().toLowerCase());
 				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Invalid value for parameter "full" (${item} is not a boolean)` };
 				conditions.push(`${Array(value.length).fill().map((a, i) => `b.playerCount ${value[i] == 'true' ? '>=' : '<'} b.playerLimit`).join(' OR ')}`);
@@ -275,14 +246,12 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 			}
 			case 'version': {
 				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				conditions.push(Array(value.length).fill().map(a => `b.version LIKE $${placeholder++}`).join(' OR '));
 				vars.push(...value);
 				break;
 			}
 			case 'protocol': {
 				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "protocol" (${item} is not a number)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.protocol = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
@@ -290,14 +259,12 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 			}
 			case 'description': {
 				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				conditions.push(Array(value.length).fill().map(a => `(b.description LIKE $${placeholder} OR b.description2 LIKE $${placeholder++})`).join(' OR '));
 				vars.push(...value);
 				break;
 			}
 			case 'seenAfter': {
 				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "seenAfter" (${item} is not a number)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.lastSeen > $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
@@ -305,7 +272,6 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 			}
 			case 'seenBefore': {
 				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "seenBefore" (${item} is not a number)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.lastSeen < $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
@@ -313,7 +279,6 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 			}
 			case 'ip': {
 				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "ip" (${item} is not a number)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.ip = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a - 2147483648)));
@@ -321,7 +286,6 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 			}
 			case 'minIp': {
 				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "minIp" (${item} is not a number)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.ip >= $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a - 2147483648)));
@@ -329,7 +293,6 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 			}
 			case 'maxIp': {
 				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "maxIp" (${item} is not a number)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.ip <= $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a - 2147483648)));
@@ -337,7 +300,6 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 			}
 			case 'port': {
 				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "port" (${item} is not a number)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.port = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a - 32768)));
@@ -345,21 +307,18 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 			}
 			case 'gamemode': {
 				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				conditions.push(Array(value.length).fill().map(a => `LOWER(b.gamemode) = $${placeholder}`).join(' OR '));
 				vars.push(...value.map(a => a.toLowerCase()));
 				break;
 			}
 			case 'country': {
 				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				conditions.push(Array(value.length).fill().map(a => `b.country = $${placeholder++}`).join(' OR '));
 				vars.push(...value);
 				break;
 			}
 			case 'org': {
 				if (!Array.isArray(value)) value = [value];
-				if (value.length == 0) return { placeholder };
 				conditions.push(Array(value.length).fill().map(a => `b.org LIKE $${placeholder++}`).join(' OR '));
 				vars.push(...value);
 				break;
@@ -373,10 +332,10 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 }
 
 module.exports = async (req, res, pool, requests) => {
-	const parsedUrl = url.parse(req.url);
+	const parsedUrl = new URL(`https://localhost${req.url}`);
 	console.log(parsedUrl.path);
-    if (parsedUrl.pathname.startsWith('/v0')) parsedUrl.pathname = parsedUrl.pathname.slice(3);
-	if (req.method != 'GET' && req.method != 'POST') {
+	let endpoint = parsedUrl.pathname.split('/')[2] || '/';
+	if (!['GET', 'POST'].includes(req.method)) {
 		res.statusCode = 405;
 		res.end();
 		return;
@@ -388,15 +347,17 @@ module.exports = async (req, res, pool, requests) => {
 	res.setHeader('Content-Type', 'application/json');
 	res.statusCode = 400;
 	
-	if (parsedUrl.pathname.toLowerCase() == '/favicon.ico') {
+	if (endpoint.toLowerCase() == 'favicon.ico') {
 		res.setHeader('Content-Type', 'image/x-icon');
 		res.end(favicon);
 		return;
 	}
 	
-	let userIp = config.cloudflare ? req.headers['cf-connecting-ip'] : req.socket.remoteAddress;
+	let userIp = req.socket.remoteAddress;
+	if (userIp.startsWith('::ffff:')) userIp = userIp.slice(7);
+	if (!config.exclude.includes(userIp) && config.cloudflare) userIp = req.headers['cf-connecting-ip'];
 	if (requests[userIp] == null) requests[userIp] = 0;
-	let args = querystring.parse(parsedUrl.query);
+	let args = Object.fromEntries(parsedUrl.searchParams.entries());
 	if (req.method == 'POST') {
 		var body = '';
 		await new Promise(resolve => req.on('data', (chunk) => body += chunk).on('end', resolve));
@@ -407,7 +368,7 @@ module.exports = async (req, res, pool, requests) => {
 			return;
 		}
 		try {
-			for (const item in body) args[item] = typeof body[item] != 'string' ? JSON.stringify(body[item]) : body[item];
+			for (const item in body) args[item] = (typeof body[item] == 'string' ? body[item] : JSON.stringify(body[item]));
 		} catch (err) {
 			res.end(JSON.stringify({ error: 'Error handling request body' }))
 			return;
@@ -415,51 +376,52 @@ module.exports = async (req, res, pool, requests) => {
 	}
 	console.log(userIp, args);
 
-	if (!['/servers', '/playerHistory', '/count', '/bedrockServers', '/bedrockCount'].includes(parsedUrl.pathname)) {
+	if (endpoint == 'credits') {
+		requests[userIp]++;
+		res.statusCode = 200;
+		res.end(JSON.stringify({ credits: Math.max(0, config.maxCredits - requests[userIp]), max: config.maxCredits }));
+		return;
+	}
+
+	if (!['servers', 'count', 'bedrockServers', 'bedrockCount'].includes(endpoint)) {
 		res.statusCode = '404';
 		res.removeHeader('Content-Type');
 		res.end();
-        return;
+		return;
 	}
 	
 	var skip = 0;
 	var limit = 20;
 	let placeholder = 1;
+	let cteConditions = [];
 	let conditions = [];
 	let vars = [];
 	let sort;
 	let descending = false;
+	let includePlayers;
 
 	if (args.skip != null && !isNaN(args.skip) && !isNaN(parseInt(args.skip))) skip = parseInt(args.skip);
 	delete args.skip;
 	if (args.limit != null && !isNaN(args.limit) && !isNaN(parseInt(args.limit))) limit = parseInt(args.limit);
 	delete args.limit;
-	if (limit > 100) limit = 100;
+	if (limit > 1000) limit = 1000;
 	if (limit <= 0) {
-        requests[userIp]++;
-        return res.end('[]');
-    }
+		requests[userIp]++;
+		return res.end(JSON.stringify({ data: [], credits: Math.max(0, config.maxCredits - requests[userIp]) }));
+	}
 
-	if (['/servers', '/count'].includes(parsedUrl.pathname)) {
+	if (['servers', 'count'].includes(endpoint)) {
 		if (args.sort != null) {
 			if (Array.isArray(args.sort)) args.sort = args.sort[0];
-			if (!['lastSeen', 'discovered'].includes(args.sort)) {
-				res.end(JSON.stringify({ error: `Invalid value for parameter "sort" (sorting by ${args.sort} is not supported)` }));
-				return;
-			}
+			if (!['lastSeen', 'discovered'].includes(args.sort)) return res.end(JSON.stringify({ error: `Invalid value for parameter "sort" (sorting by ${args.sort} is not supported)` }));
 			if (args.sort == 'lastSeen') sort = 's.lastSeen';
 			if (args.sort == 'discovered') sort = 's.discovered';
 			delete args.sort;
 		}
+
 		if (args.descending != null) {
-			if (!['true', 'false'].includes(args.descending)) {
-				res.end(JSON.stringify({ error: `Invalid value for parameter "descending" (${args.vanilla} is not a boolean)` }));
-				return;
-			}
-			if (sort == null) {
-				res.end(JSON.stringify({ error: `Cannot use parameter "descending" without specifing a sort value` }));
-				return;
-			}
+			if (!['true', 'false'].includes(args.descending)) return res.end(JSON.stringify({ error: `Invalid value for parameter "descending" (${args.vanilla} is not a boolean)` }));
+			if (sort == null) return res.end(JSON.stringify({ error: `Cannot use parameter "descending" without specifing a sort value` }));
 			descending = args.descending == 'true';
 			delete args.descending;
 		}
@@ -467,8 +429,7 @@ module.exports = async (req, res, pool, requests) => {
 		if (args.minIp != null || args.maxIp != null) {
 			if (Array.isArray(args.minIp) || Array.isArray(args.maxIp)) {
 				if (Math.abs(args.minIp.length - args.maxIp.length) > 1) {
-					res.end(JSON.stringify({ error: `Invalid use of parameters "minIp" or "maxIp" (number of minIp and maxIp parameters must be equal or differ by one)` }));
-					return;
+					return res.end(JSON.stringify({ error: `Invalid use of parameters "minIp" or "maxIp" (number of minIp and maxIp parameters must be equal or differ by one)` }));
 				}
 			} else {
 				if (args.minIp != null) args.minIp = [args.minIp];
@@ -484,27 +445,14 @@ module.exports = async (req, res, pool, requests) => {
 				if (range.minIp != null && range.maxIp != null) {
 					let condition = '';
 					let len = Math.min(range.minIp.length, range.maxIp.length);
-					if (Math.abs(range.minIp.length - range.maxIp.length) > 1) {
-						res.end(JSON.stringify({ error: `Invalid length for parameter "${range.minIp.length > range.maxIp.length ? 'minIp' : 'maxIp'}" (lengths of minIp and maxIp must be equal or differ by one)` }));
-						return;
-					}
+					if (Math.abs(range.minIp.length - range.maxIp.length) > 1) return res.end(JSON.stringify({ error: `Invalid length for parameter "${range.minIp.length > range.maxIp.length ? 'minIp' : 'maxIp'}" (lengths of minIp and maxIp must be equal or differ by one)` }));
 					for (const item of range.minIp) {
-						if (isNaN(item) || isNaN(parseInt(item))) {
-							res.end(JSON.stringify({ error: `Invalid value for parameter "minIp" (${item} is not a number)` }));
-							return;
-						} else if (parseInt(item) < 0 || parseInt(item) > 4294967295) {
-							res.end(JSON.stringify({ error: `Invalid value for parameter "minIp" (${item} is not a valid ip address)` }));
-							return;
-						}
+						if (isNaN(item) || isNaN(parseInt(item))) return res.end(JSON.stringify({ error: `Invalid value for parameter "minIp" (${item} is not a number)` }));
+						else if (parseInt(item) < 0 || parseInt(item) > 4294967295) return res.end(JSON.stringify({ error: `Invalid value for parameter "minIp" (${item} is not a valid ip address)` }));
 					}
 					for (const item of range.maxIp) {
-						if (isNaN(item) || isNaN(parseInt(item))) {
-							res.end(JSON.stringify({ error: `Invalid value for parameter "maxIp" (${item} is not a number)` }));
-							return;
-						} else if (parseInt(item) < 0 || parseInt(item) > 4294967295) {
-							res.end(JSON.stringify({ error: `Invalid value for parameter "maxIp" (${item} is not a valid ip address)` }));
-							return;
-						}
+						if (isNaN(item) || isNaN(parseInt(item))) return res.end(JSON.stringify({ error: `Invalid value for parameter "maxIp" (${item} is not a number)` }));
+						else if (parseInt(item) < 0 || parseInt(item) > 4294967295) return res.end(JSON.stringify({ error: `Invalid value for parameter "maxIp" (${item} is not a valid ip address)` }));
 					}
 					range.minIp = range.minIp.map(a => parseInt(a - 2147483648));
 					range.maxIp = range.maxIp.map(a => parseInt(a - 2147483648));
@@ -529,12 +477,27 @@ module.exports = async (req, res, pool, requests) => {
 			delete args.maxIp;
 		}
 
+		if (args.includePlayers != null) {
+			if (!['true', 'false'].includes(args.includePlayers)) return res.end(JSON.stringify({ error: `Invalid value for parameter "descending" (${args.vanilla} is not a boolean)` }));
+			includePlayers = args.includePlayers == 'true';
+			delete args.includePlayers;
+		}
+
 		for (const key in args) {
 			for (let item of (Array.isArray(args[key]) ? args[key] : [args[key]])) {
 				try {
 					item = JSON.parse(item);
 				} catch (err) {}
-				let response = addCondition(parsedUrl.pathname, key, item, conditions, vars, placeholder);
+				let options = {};
+				if (typeof item == 'object') {
+					let obj = item;
+					item = item.data;
+					delete obj.data;
+					Object.assign(options, obj);
+				}
+				if (!Array.isArray(item)) item = [item];
+				if (item.length == 0) continue;
+				let response = addCondition(endpoint, key, item, cteConditions, conditions, vars, placeholder, options);
 				if (response.error != null) {
 					res.end(JSON.stringify({ error: response.error }));
 					return;
@@ -544,7 +507,7 @@ module.exports = async (req, res, pool, requests) => {
 		}
 	}
 
-	if (['/bedrockServers', '/bedrockCount'].includes(parsedUrl.pathname)) {
+	if (['bedrockServers', 'bedrockCount'].includes(endpoint)) {
 		if (args.sort != null) {
 			if (Array.isArray(args.sort)) args.sort = args.sort[0];
 			if (!['lastSeen', 'discovered'].includes(args.sort)) {
@@ -638,7 +601,16 @@ module.exports = async (req, res, pool, requests) => {
 				try {
 					item = JSON.parse(item);
 				} catch (err) {}
-				let response = addCondition(parsedUrl.pathname, key, item, conditions, vars, placeholder);
+				let options = {};
+				if (typeof item == 'object') {
+					let obj = item;
+					item = item.data;
+					delete obj.data;
+					Object.assign(options, obj);
+				}
+				if (!Array.isArray(item)) item = [item];
+				if (item.length == 0) continue;
+				let response = addCondition(endpoint, key, item, cteConditions, conditions, vars, placeholder, options);
 				if (response.error != null) {
 					res.end(JSON.stringify({ error: response.error }));
 					return;
@@ -647,47 +619,24 @@ module.exports = async (req, res, pool, requests) => {
 			}
 		}
 	}
-
-	if (parsedUrl.pathname == '/playerHistory') {
-		if (args.ip == null) {
-			res.end(JSON.stringify({ error: `Missing required parameter "ip"` }));
-			return;
-		} else {
-			if (isNaN(args.ip) || isNaN(parseInt(args.ip))) {
-				res.end(JSON.stringify({ error: `Invalid value for parameter "ip" (${args.ip} is not a number)` }));
-				return;
-			}
-			conditions.push(`s.ip = $${placeholder++}`);
-			vars.push(parseInt(args.ip - 2147483648));
-			delete args.ip;
-		}
-		if (args.port == null) {
-			res.end(JSON.stringify({ error: `Missing required parameter "port"` }));
-			return;
-		} else {
-			if (isNaN(args.port) || isNaN(parseInt(args.port))) {
-				res.end(JSON.stringify({ error: `Invalid value for parameter "port" (${args.port} is not a number)` }));
-				return;
-			}
-			conditions.push(`s.port = $${placeholder++}`);
-			vars.push(parseInt(args.port - 32768));
-			delete args.port;
-		}
-	}
 	
 	res.statusCode = 200;
-	if (parsedUrl.pathname == '/servers') {
-		if (!(userIp == null || config.exclude.includes(userIp))) {
+	if (endpoint == 'servers') {
+		if (!config.exclude.includes(userIp)) {
 			if (requests[userIp] >= config.maxCredits) {
 				res.statusCode = 429;
-				res.end(JSON.stringify({ error: 'Too many requests (Limit: 10,000 credits per hour)' }));
+				res.end(JSON.stringify({ error: `Too many requests (Limit: ${config.maxCredits.toLocaleString()} credits per hour)` }));
 				return;
 			}
-			if (requests[userIp] + limit > config.maxCredits) limit = config.maxCredits - requests[userIp];
+			if (requests[userIp] + limit > config.maxCredits) limit = Math.max(0, config.maxCredits - requests[userIp]);
 			requests[userIp] += Math.max(10, limit);
 		}
 		
-		let query = `SELECT * FROM servers s ${conditions.length > 0 ? 'WHERE' : ''} ${conditions.map(a => `(${a})`).join(' AND ')} ${sort == null ? '' : `ORDER BY ${sort} ${descending ? 'DESC' : ''}`} LIMIT ${limit} OFFSET ${skip}`
+		let select = includePlayers ? `s.*, p.playerHistory` : '*';
+		let cteServers = `WITH servers AS (SELECT DISTINCT ON (p.serverId) s.* FROM playerhistory p JOIN servers s ON s.serverId = p.serverId WHERE ${cteConditions.map(a => `(${a})`).join(' AND ')})`;
+		let where = conditions.length == 0 ? '' : `WHERE ${conditions.map(a => `(${a})`).join(' AND ')}`;
+		let join = includePlayers ? `CROSS JOIN LATERAL (SELECT json_agg(json_build_object('name', name, 'id', id, 'lastSession', lastSession)) AS playerHistory FROM playerhistory p WHERE p.serverId = s.serverId) p` : '';
+		let query = `${cteConditions.length > 0 ? cteServers : ''} SELECT ${select} FROM servers s ${join} ${where} ${sort == null ? '' : `ORDER BY ${sort} ${descending ? 'DESC' : ''}`} LIMIT ${limit} OFFSET ${skip}`;
 		let result;
 		try {
 			result = await pool.query(query, vars);
@@ -704,49 +653,54 @@ module.exports = async (req, res, pool, requests) => {
 			return;
 		}
 
-		res.end(JSON.stringify(result.rows.map(a => ({
-			ip: a.ip + 2147483648,
-			port: a.port + 32768,
-			discovered: a.discovered,
-			lastSeen: a.lastseen,
-			version: {
-				name: a.version,
-				protocol: a.protocol,
-			},
-			description: a.description,
-			rawDescription: a.rawdescription,
-			players: {
-				max: a.playerlimit,
-				online: a.playercount,
-				hasPlayerSample: a.hasplayersample
-			},
-			hasFavicon: a.hasfavicon,
-			hasForgeData: a.hasforgedata,
-			enforcesSecureChat: a.enforcessecurechat,
-			org: a.org,
-			geo: {
-				country: a.country,
-				city: a.city,
-				lat: a.lat,
-				lon: a.lon
-			},
-			cracked: a.cracked,
-			whitelisted: a.whitelisted
-		}))));
+		res.end(JSON.stringify({
+			data: result.rows.map(a => Object.assign({
+				ip: a.ip + 2147483648,
+				port: a.port + 32768,
+				discovered: a.discovered,
+				lastSeen: a.lastseen,
+				version: {
+					name: a.version,
+					protocol: a.protocol,
+				},
+				description: a.description,
+				rawDescription: a.rawdescription,
+				players: {
+					max: a.playerlimit,
+					online: a.playercount,
+					hasPlayerSample: a.hasplayersample
+				},
+				hasFavicon: a.hasfavicon,
+				hasForgeData: a.hasforgedata,
+				enforcesSecureChat: a.enforcessecurechat,
+				org: a.org,
+				geo: {
+					country: a.country,
+					city: a.city,
+					lat: a.lat,
+					lon: a.lon
+				},
+				cracked: a.cracked,
+				whitelisted: a.whitelisted
+			}, includePlayers ? { playerHistory: a.playerhistory || [] } : {})),
+			credits: Math.max(0, config.maxCredits - requests[userIp])
+		}));
 	}
 
-	if (parsedUrl.pathname == '/count') {
-		if (!(userIp == null || config.exclude.includes(userIp))) {
+	if (endpoint == 'count') {
+		if (!config.exclude.includes(userIp)) {
 			if (requests[userIp] >= config.maxCredits) {
 				res.statusCode = 429;
-				res.end(JSON.stringify({ error: 'Too many requests (Limit: 10,000 credits per hour)' }));
+				res.end(JSON.stringify({ error: `Too many requests (Limit: ${config.maxCredits.toLocaleString()} credits per hour)` }));
 				return;
 			}
-			if (requests[userIp] + limit > config.maxCredits) limit = config.maxCredits - requests[userIp];
-			requests[userIp] += Math.max(10, limit);
+			if (requests[userIp] + limit > config.maxCredits) limit = Math.max(0, config.maxCredits - requests[userIp]);
+			requests[userIp] += 100;
 		}
 		
-		let query = `SELECT COUNT(*) FROM servers s ${conditions.length > 0 ? 'WHERE' : ''} ${conditions.map(a => `(${a})`).join(' AND ')}`;
+		let cteServers = `WITH servers AS (SELECT DISTINCT ON (p.serverId) s.* FROM playerhistory p JOIN servers s ON s.serverId = p.serverId WHERE ${cteConditions.map(a => `(${a})`).join(' AND ')})`;
+		let where = conditions.length == 0 ? '' : `WHERE ${conditions.map(a => `(${a})`).join(' AND ')}`;
+		let query = `${cteConditions.length > 0 ? cteServers : ''} SELECT COUNT(*) FROM servers s ${where}`;
 		let result;
 		try {
 			result = await pool.query(query, vars);
@@ -763,52 +717,20 @@ module.exports = async (req, res, pool, requests) => {
 			return;
 		}
 
-		res.end(result.rows[0].count);
+		res.end(JSON.stringify({
+			data: parseInt(result.rows[0].count),
+			credits: Math.max(0, config.maxCredits - requests[userIp])
+		}));
 	}
 
-	if (parsedUrl.pathname == '/playerHistory') {
-		if (!(userIp == null || config.exclude.includes(userIp))) {
+	if (endpoint == 'bedrockServers') {
+		if (!config.exclude.includes(userIp)) {
 			if (requests[userIp] >= config.maxCredits) {
 				res.statusCode = 429;
-				res.end(JSON.stringify({ error: 'Too many requests (Limit: 10,000 credits per hour)' }));
+				res.end(JSON.stringify({ error: `Too many requests (Limit: ${config.maxCredits.toLocaleString()} credits per hour)` }));
 				return;
 			}
-			if (requests[userIp] + limit > config.maxCredits) limit = config.maxCredits - requests[userIp];
-			requests[userIp] += Math.max(10, limit);
-		}
-
-		let query = `SELECT DISTINCT ON (p.playerId) * FROM servers s JOIN history h ON h.serverId = s.serverId JOIN players p ON h.playerId = p.playerId WHERE ${conditions.map(a => `(${a})`).join(' AND ')}`;
-		let result;
-		try {
-			result = await pool.query(query, vars);
-		} catch (err) {
-			console.error(query);
-			console.error(err);
-			if (err.message.includes('canceling statement due to statement timeout')) {
-				res.statusCode = 503;
-				res.end(JSON.stringify({ error: 'Query timeout' }));
-			} else {
-				res.statusCode = 500;
-				res.end(JSON.stringify({ error: 'Error constructing query' }));
-			}
-			return;
-		}
-		
-		res.end(JSON.stringify(result.rows.map(a => ({
-			name: a.name,
-			id: a.id,
-			lastSession: a.lastsession
-		}))));
-	}
-
-	if (parsedUrl.pathname == '/bedrockServers') {
-		if (!(userIp == null || config.exclude.includes(userIp))) {
-			if (requests[userIp] >= config.maxCredits) {
-				res.statusCode = 429;
-				res.end(JSON.stringify({ error: 'Too many requests (Limit: 10,000 credits per hour)' }));
-				return;
-			}
-			if (requests[userIp] + limit > config.maxCredits) limit = config.maxCredits - requests[userIp];
+			if (requests[userIp] + limit > config.maxCredits) limit = Math.max(0, config.maxCredits - requests[userIp]);
 			requests[userIp] += Math.max(10, limit);
 		}
 		
@@ -829,49 +751,52 @@ module.exports = async (req, res, pool, requests) => {
 			return;
 		}
 
-		res.end(JSON.stringify(result.rows.map(a => (
-			{
-				ip: a.ip + 2147483648,
-				port: a.port + 32768,
-				discovered: a.discovered,
-				lastSeen: a.lastseen,
-				education: a.education,
-				version: {
-					name: a.version,
-					protocol: a.protocol
-				},
-				description: a.description,
-				rawDescription: a.rawdescription,
-				description2: a.description2,
-				rawDescription2: a.rawdescription2,
-				players: {
-					online: a.playercount,
-					max: a.playerlimit
-				},
-				gamemode: {
-					name: a.gamemode,
-					id: a.modeid
-				},
-				org: a.org,
-				geo: {
-					country: a.country,
-					city: a.city,
-					lat: a.lat,
-					lon: a.lon
+		res.end(JSON.stringify({
+			data: result.rows.map(a => (
+				{
+					ip: a.ip + 2147483648,
+					port: a.port + 32768,
+					discovered: a.discovered,
+					lastSeen: a.lastseen,
+					education: a.education,
+					version: {
+						name: a.version,
+						protocol: a.protocol
+					},
+					description: a.description,
+					rawDescription: a.rawdescription,
+					description2: a.description2,
+					rawDescription2: a.rawdescription2,
+					players: {
+						online: a.playercount,
+						max: a.playerlimit
+					},
+					gamemode: {
+						name: a.gamemode,
+						id: a.modeid
+					},
+					org: a.org,
+					geo: {
+						country: a.country,
+						city: a.city,
+						lat: a.lat,
+						lon: a.lon
+					}
 				}
-			}
-		))));
+			)),
+			credits: Math.max(0, config.maxCredits - requests[userIp])
+		}));
 	}
 
-	if (parsedUrl.pathname == '/bedrockCount') {
-		if (!(userIp == null || config.exclude.includes(userIp))) {
+	if (endpoint == 'bedrockCount') {
+		if (!config.exclude.includes(userIp)) {
 			if (requests[userIp] >= config.maxCredits) {
 				res.statusCode = 429;
-				res.end(JSON.stringify({ error: 'Too many requests (Limit: 10,000 credits per hour)' }));
+				res.end(JSON.stringify({ error: `Too many requests (Limit: ${config.maxCredits.toLocaleString()} credits per hour)` }));
 				return;
 			}
-			if (requests[userIp] + limit > config.maxCredits) limit = config.maxCredits - requests[userIp];
-			requests[userIp] += Math.max(10, limit);
+			if (requests[userIp] + limit > config.maxCredits) limit = Math.max(0, config.maxCredits - requests[userIp]);
+			requests[userIp] += 100;
 		}
 		
 		let query = `SELECT COUNT(*) FROM bedrock b ${conditions.length > 0 ? 'WHERE' : ''} ${conditions.map(a => `(${a})`).join(' AND ')}`;
@@ -891,6 +816,9 @@ module.exports = async (req, res, pool, requests) => {
 			return;
 		}
 
-		res.end(result.rows[0].count);
+		res.end(JSON.stringify({
+			data: parseInt(result.rows[0].count),
+			credits: Math.max(0, config.maxCredits - requests[userIp])
+		}));
 	}
 };

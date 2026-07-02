@@ -24,8 +24,9 @@ try {
 };
 
 let versions = {
-	v0: require('./v0.js'),
-	v1: require('./v1.js')
+	// v0: require('./v0.js'),
+	v1: require('./v1.js'),
+	v2: require('./v2.js')
 };
 
 (async () => {
@@ -64,11 +65,15 @@ let versions = {
 			}
 		}
 
-		const parsedUrl = url.parse(req.url);
+		const parsedUrl = new URL(`https://localhost${req.url}`);
 		let version = parsedUrl.pathname.split('/')[1];
-		if (versions[version] == null) versions.v0(req, res, pool, requests);
+		if (versions[version] == null) {
+			res.statusCode = 404;
+			return res.end();
+		}
 		else versions[version](req, res, pool, requests);
 	}).listen(config.port);
+	console.log(`Listening on port ${config.port}...`)
 })();
 
 setInterval(async () => {
