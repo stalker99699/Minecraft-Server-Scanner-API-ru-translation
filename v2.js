@@ -1,6 +1,6 @@
 /*
 Major changes:
-- new includePlayers endpoint returns player history in /servers responses
+- new includePlayers argument returns player history in /servers responses
 - /playerHistory has been removed
 - you can now put args in the "data" property of an object to allow for additional settings to be included
   - caseInsensitive option added for onlinePlayer and playerHistory
