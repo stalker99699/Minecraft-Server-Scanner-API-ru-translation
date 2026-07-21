@@ -21,7 +21,7 @@ try {
 	requests = JSON.parse(fs.readFileSync('requests.json').toString());
 } catch (err) {
 	console.error('requests.json missing or corrupted, creating new file.')
-};
+}
 
 let versions = {
 	// v0: require('./v0.js'),
@@ -71,7 +71,7 @@ let versions = {
 			res.statusCode = 404;
 			return res.end();
 		}
-		else versions[version](req, res, pool, requests);
+		else versions[version]({ req, res, pool, requests, streamServers });
 	}).listen(config.port);
 	console.log(`Listening on port ${config.port}...`)
 })();
@@ -84,3 +84,107 @@ const updateFile = () => {
 	fs.writeFile('./requests.json', JSON.stringify(requests), () => setTimeout(updateFile, 1000));
 }
 updateFile();
+
+
+let twitchAccessToken;
+let accessTokenTimeout = 0;
+async function refreshAccessToken() {
+    if (Math.floor((new Date()).getTime() / 1000) >= accessTokenTimeout - 21600) {
+        const twitchResponse = await (await fetch(`https://id.twitch.tv/oauth2/token?client_id=${config.twitch.clientId}&client_secret=${config.twitch.secret}&grant_type=client_credentials`, {
+            method: 'POST'
+        })).json();
+        twitchAccessToken = twitchResponse.access_token;
+        accessTokenTimeout = (new Date()).getTime() / 1000 + twitchResponse.expires_in;
+    }
+}
+
+let streamServers = [];
+async function fetchStreams() {
+	try {
+		if (twitchAccessToken == null) await (new Promise(resolve => setInterval(() => { if (twitchAccessToken != null) resolve(); }, 100)));
+	
+		let streams = [];
+		const options = {
+			method: 'GET',
+			headers: {
+				'Client-ID': config.twitch.clientId,
+				'Authorization': `Bearer ${twitchAccessToken}`
+			}
+		}
+		// console.log('[Twitch] Fetching streams...');
+		let response = await (await fetch('https://api.twitch.tv/helix/streams?game_id=27471&first=100', options)).json();
+		streams = response.data;
+		do {
+			try {
+				response = await (await fetch(`https://api.twitch.tv/helix/streams?game_id=27471&first=100&after=${response.pagination.cursor}`, options)).json();
+				streams = streams.concat(response.data);
+			} catch (err) {}
+		} while (response.pagination?.cursor != null)
+		// console.log(`[Twitch] Fetched ${streams.length} streams.`);
+	
+		// console.log('[Twitch] Fetching servers...');
+		let placeholder = 1;
+		let result = await pool.query(`
+			WITH servers AS (SELECT DISTINCT ON (p.serverId) s.*
+			FROM playerhistory p JOIN servers s ON s.serverId = p.serverId
+			WHERE (
+				`+/*p.lastSession > ${Math.floor(Date.now()) - config.twitch.serverTimeout} AND */`
+				p.lastSession = s.lastSeen AND
+				${config.twitch.caseSensitive ? 'p.name' : 'LOWER(p.name)'} IN (${streams.map(a => `$${placeholder++}`).join(',')})))
+			SELECT s.*, p.playerHistory FROM servers s
+			CROSS JOIN LATERAL (
+				SELECT json_agg(json_build_object('name', name, 'id', id, 'lastSession', lastSession))
+				AS playerHistory FROM playerhistory p WHERE p.serverId = s.serverId) p
+			LIMIT 1000 OFFSET 0`,
+			streams.map(a => a.user_name.toLowerCase()));
+		streamServers = result.rows.map(a => Object.assign({
+			ip: a.ip + 2147483648,
+			port: a.port + 32768,
+			discovered: a.discovered,
+			lastSeen: a.lastseen,
+			version: {
+				name: a.version,
+				protocol: a.protocol,
+			},
+			description: a.description,
+			rawDescription: a.rawdescription,
+			players: {
+				max: a.playerlimit,
+				online: a.playercount,
+				hasPlayerSample: a.hasplayersample
+			},
+			hasFavicon: a.hasfavicon,
+			hasForgeData: a.hasforgedata,
+			enforcesSecureChat: a.enforcessecurechat,
+			org: a.org,
+			geo: {
+				country: a.country,
+				city: a.city,
+				lat: a.lat,
+				lon: a.lon
+			},
+			cracked: a.cracked,
+			whitelisted: a.whitelisted,
+			playerHistory: a.playerhistory
+		}));
+		for (let result of streamServers) {
+			result.streams = streams
+				.filter(a => result.playerHistory.filter(a => a.lastSession == result.lastSeen).map(a => a.name.toLowerCase()).includes(a.user_name.toLowerCase()))
+				.filter((a, i, arr) => !arr.slice(0, i).some(b => a.user_name == b.user_name))
+				.slice(0, 10);
+		}
+		streamServers = streamServers.filter(a => a.streams.length > 0);
+		// console.log(`[Twitch] Fetched ${streamServers.length} servers.`);
+	} catch (err) {
+		console.error('Error fetching streamsnipes:');
+		console.error(err);
+	}
+
+	setTimeout(fetchStreams);
+}
+
+if (config.twitch?.enabled) {
+    refreshAccessToken();
+    setInterval(refreshAccessToken, 7200);
+    fetchStreams();
+}

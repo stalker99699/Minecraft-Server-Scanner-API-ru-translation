@@ -4,11 +4,13 @@ Major changes:
 - /playerHistory has been removed
 - you can now put args in the "data" property of an object to allow for additional settings to be included
   - caseInsensitive option added for onlinePlayer and playerHistory
+- /streamsnipe uses the Twitch api to find live streamers
 */
 
 
 const fs = require('fs');
 const url = require('url');
+const querystring = require('querystring');
 const favicon = fs.readFileSync('favicon.ico');
 const config = require('./config.json');
 
@@ -331,7 +333,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 	return { placeholder };
 }
 
-module.exports = async (req, res, pool, requests) => {
+module.exports = async ({ req, res, pool, requests, streamServers }) => {
 	const parsedUrl = new URL(`https://localhost${req.url}`);
 	console.log(parsedUrl.pathname);
 	let endpoint = parsedUrl.pathname.split('/')[2] || '/';
@@ -357,7 +359,7 @@ module.exports = async (req, res, pool, requests) => {
 	if (userIp.startsWith('::ffff:')) userIp = userIp.slice(7);
 	if (!config.exclude.includes(userIp) && config.cloudflare) userIp = req.headers['cf-connecting-ip'];
 	if (requests[userIp] == null) requests[userIp] = 0;
-	let args = Object.fromEntries(parsedUrl.searchParams.entries());
+	let args = querystring.parse(parsedUrl.search.slice(1));
 	if (req.method == 'POST') {
 		var body = '';
 		await new Promise(resolve => req.on('data', (chunk) => body += chunk).on('end', resolve));
@@ -380,6 +382,21 @@ module.exports = async (req, res, pool, requests) => {
 		requests[userIp]++;
 		res.statusCode = 200;
 		res.end(JSON.stringify({ credits: Math.max(0, config.maxCredits - requests[userIp]), max: config.maxCredits }));
+		return;
+	}
+
+	if (endpoint == 'streamsnipe') {
+		if (!config.twitch.enabled) {
+			res.statusCode = 404;
+			res.end();
+			return;
+		}
+		let servers = streamServers;
+		if (args.language != null) {
+			let language = Array.isArray(args.language) ? args.language : [args.language];
+			servers = servers.filter(a => a.streams.some(b => language.includes(b.language)));
+		}
+		res.end(JSON.stringify({ data: servers, credits: Math.max(0, config.maxCredits - requests[userIp])}));
 		return;
 	}
 
@@ -821,4 +838,4 @@ module.exports = async (req, res, pool, requests) => {
 			credits: Math.max(0, config.maxCredits - requests[userIp])
 		}));
 	}
-};
+}

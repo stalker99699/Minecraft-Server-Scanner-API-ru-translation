@@ -389,7 +389,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 	return { placeholder };
 }
 
-module.exports = async (req, res, pool, requests) => {
+module.exports = async ({ req, res, pool, requests }) => {
 	const parsedUrl = new URL(`https://localhost${req.url}`);
 	console.log(parsedUrl.pathname);
 	let endpoint = parsedUrl.pathname.split('/')[2] || '/';
@@ -415,7 +415,7 @@ module.exports = async (req, res, pool, requests) => {
 	if (userIp.startsWith('::ffff:')) userIp = userIp.slice(7);
 	if (!config.exclude.includes(userIp) && config.cloudflare) userIp = req.headers['cf-connecting-ip'];
 	if (requests[userIp] == null) requests[userIp] = 0;
-	let args = Object.fromEntries(parsedUrl.searchParams.entries());
+	let args = querystring.parse(parsedUrl.search.slice(1));
 	if (req.method == 'POST') {
 		var body = '';
 		await new Promise(resolve => req.on('data', (chunk) => body += chunk).on('end', resolve));

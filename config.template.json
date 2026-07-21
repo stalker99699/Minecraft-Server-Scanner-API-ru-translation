@@ -9,5 +9,12 @@
         "password": "",
         "database": ""
     },
-    "exclude": [""]
+    "exclude": [""],
+    "twitch": {
+        "enabled": false,
+        "clientId": "",
+        "secret": "",
+        "serverTimeout": 3600,
+        "caseSensitive": true
+    }
 }

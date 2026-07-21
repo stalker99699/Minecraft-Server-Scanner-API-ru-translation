@@ -372,7 +372,7 @@ function addCondition(path, arg, value, conditions, vars, placeholder) {
 	return { placeholder };
 }
 
-module.exports = async (req, res, pool, requests) => {
+module.exports = async ({ req, res, pool, requests }) => {
 	const parsedUrl = url.parse(req.url);
 	console.log(parsedUrl.path);
     if (parsedUrl.pathname.startsWith('/v0')) parsedUrl.pathname = parsedUrl.pathname.slice(3);
