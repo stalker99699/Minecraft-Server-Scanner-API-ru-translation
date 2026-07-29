@@ -386,6 +386,7 @@ module.exports = async ({ req, res, pool, requests, streamServers }) => {
 	}
 
 	if (endpoint == 'streamsnipe') {
+		requests[userIp]++;
 		if (!config.twitch.enabled) {
 			res.statusCode = 404;
 			res.end();
