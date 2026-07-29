@@ -128,7 +128,7 @@ async function fetchStreams() {
 			WITH servers AS (SELECT DISTINCT ON (p.serverId) s.*
 			FROM playerhistory p JOIN servers s ON s.serverId = p.serverId
 			WHERE (
-				`+/*p.lastSession > ${Math.floor(Date.now()) - config.twitch.serverTimeout} AND */`
+				p.lastSession > ${Math.floor(Date.now()) - config.twitch.serverTimeout} AND
 				p.lastSession = s.lastSeen AND
 				${config.twitch.caseSensitive ? 'p.name' : 'LOWER(p.name)'} IN (${streams.map(a => `$${placeholder++}`).join(',')})))
 			SELECT s.*, p.playerHistory FROM servers s
