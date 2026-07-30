@@ -128,15 +128,15 @@ async function fetchStreams() {
 			WITH servers AS (SELECT DISTINCT ON (p.serverId) s.*
 			FROM playerhistory p JOIN servers s ON s.serverId = p.serverId
 			WHERE (
-				p.lastSession > ${Math.floor(Date.now()) - config.twitch.serverTimeout} AND
+				p.lastSession > ${Math.floor(Date.now() / 1000) - config.twitch.serverTimeout} AND
 				p.lastSession = s.lastSeen AND
 				${config.twitch.caseSensitive ? 'p.name' : 'LOWER(p.name)'} IN (${streams.map(a => `$${placeholder++}`).join(',')})))
 			SELECT s.*, p.playerHistory FROM servers s
 			CROSS JOIN LATERAL (
 				SELECT json_agg(json_build_object('name', name, 'id', id, 'lastSession', lastSession))
-				AS playerHistory FROM playerhistory p WHERE p.serverId = s.serverId) p
-			LIMIT 1000 OFFSET 0`,
-			streams.map(a => a.user_name.toLowerCase()));
+				AS playerHistory FROM playerhistory p WHERE p.serverId = s.serverId) p`,
+			streams.map(a => config.twitch.caseSensitive ? a.user_name : a.user_name.toLowerCase()));
+		
 		streamServers = result.rows.map(a => Object.assign({
 			ip: a.ip + 2147483648,
 			port: a.port + 32768,
