@@ -15,6 +15,7 @@
         "clientId": "",
         "secret": "",
         "serverTimeout": 3600,
-        "caseSensitive": true
+        "caseSensitive": true,
+        "log": false
     }
 }

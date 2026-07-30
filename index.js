@@ -111,7 +111,7 @@ async function fetchStreams() {
 				'Authorization': `Bearer ${twitchAccessToken}`
 			}
 		}
-		// console.log('[Twitch] Fetching streams...');
+		if (config.twitch.log) console.log('[Twitch] Fetching streams...');
 		let response = await (await fetch('https://api.twitch.tv/helix/streams?game_id=27471&first=100', options)).json();
 		streams = response.data;
 		do {
@@ -120,9 +120,9 @@ async function fetchStreams() {
 				streams = streams.concat(response.data);
 			} catch (err) {}
 		} while (response.pagination?.cursor != null)
-		// console.log(`[Twitch] Fetched ${streams.length} streams.`);
+		if (config.twitch.log) console.log(`[Twitch] Fetched ${streams.length} streams.`);
 	
-		// console.log('[Twitch] Fetching servers...');
+		if (config.twitch.log) console.log('[Twitch] Fetching servers...');
 		let placeholder = 1;
 		let result = await pool.query(`
 			WITH servers AS (SELECT DISTINCT ON (p.serverId) s.*
@@ -174,7 +174,7 @@ async function fetchStreams() {
 				.slice(0, 10);
 		}
 		streamServers = streamServers.filter(a => a.streams.length > 0);
-		// console.log(`[Twitch] Fetched ${streamServers.length} servers.`);
+		if (config.twitch.log) console.log(`[Twitch] Fetched ${streamServers.length} servers.`);
 	} catch (err) {
 		console.error('Error fetching streamsnipes:');
 		console.error(err);
