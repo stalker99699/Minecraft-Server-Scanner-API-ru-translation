@@ -52,7 +52,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
 				value = value.map(a => typeof a == 'string' ? a : String(a));
-				cteConditions.push(`p.lastSession = s.lastSeen AND ${caseInsensitive ? 'LOWER(p.name)' : 'p.name'} IN (${new Array(value.length).fill().map(a => `$${placeholder++}`)})`);
+				cteConditions.push(`p.lastSession = s.lastSeen AND p.name IN (${new Array(value.length).fill().map(a => `$${placeholder++}`)})`);
 				vars.push(...value);
 				break;
 			}
@@ -68,7 +68,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
 				value = value.map(a => typeof a == 'string' ? a : String(a));
-				cteConditions.push(`${caseInsensitive ? 'LOWER(p.name)' : 'p.name'} IN (${new Array(value.length).fill().map(a => `$${placeholder++}`)})`);
+				cteConditions.push(`p.name IN (${new Array(value.length).fill().map(a => `$${placeholder++}`)})`);
 				vars.push(...value);
 				break;
 			}
@@ -76,7 +76,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
 				value = value.map(a => typeof a == 'string' ? a : String(a));
-				cteConditions.push(`${caseInsensitive ? 'LOWER(p.id)' : 'p.id'} IN (${new Array(value.length).fill().map(a => `$${placeholder++}`)})`);
+				cteConditions.push(`p.id IN (${new Array(value.length).fill().map(a => `$${placeholder++}`)})`);
 				vars.push(...value);
 				break;
 			}
