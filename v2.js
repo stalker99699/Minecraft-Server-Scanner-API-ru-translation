@@ -333,7 +333,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 	return { placeholder };
 }
 
-module.exports = async ({ req, res, pool, requests, streamServers }) => {
+module.exports = async ({ userIp, req, res, pool, requests, streamServers }) => {
 	const parsedUrl = new URL(`https://localhost${req.url}`);
 	console.log(parsedUrl.pathname);
 	let endpoint = parsedUrl.pathname.split('/')[2] || '/';
@@ -355,10 +355,10 @@ module.exports = async ({ req, res, pool, requests, streamServers }) => {
 		return;
 	}
 	
-	let userIp = req.socket.remoteAddress;
-	if (userIp.startsWith('::ffff:')) userIp = userIp.slice(7);
-	if (!config.exclude.includes(userIp) && config.cloudflare) userIp = req.headers['cf-connecting-ip'];
 	if (requests[userIp] == null) requests[userIp] = 0;
+	let rateLimit = true;
+	if (config.exclude.includes(userIp)) rateLimit = false;
+
 	let args = querystring.parse(parsedUrl.search.slice(1));
 	if (req.method == 'POST') {
 		var body = '';
@@ -379,14 +379,14 @@ module.exports = async ({ req, res, pool, requests, streamServers }) => {
 	console.log(userIp, args);
 
 	if (endpoint == 'credits') {
-		requests[userIp]++;
+		if (rateLimit) requests[userIp]++;
 		res.statusCode = 200;
 		res.end(JSON.stringify({ credits: Math.max(0, config.maxCredits - requests[userIp]), max: config.maxCredits }));
 		return;
 	}
 
 	if (endpoint == 'streamsnipe') {
-		requests[userIp]++;
+		if (rateLimit) requests[userIp]++;
 		if (!config.twitch.enabled) {
 			res.statusCode = 404;
 			res.end();
@@ -424,7 +424,7 @@ module.exports = async ({ req, res, pool, requests, streamServers }) => {
 	delete args.limit;
 	if (limit > 1000) limit = 1000;
 	if (limit <= 0) {
-		requests[userIp]++;
+		if (rateLimit) requests[userIp]++;
 		return res.end(JSON.stringify({ data: [], credits: Math.max(0, config.maxCredits - requests[userIp]) }));
 	}
 
@@ -647,7 +647,7 @@ module.exports = async ({ req, res, pool, requests, streamServers }) => {
 				return;
 			}
 			if (requests[userIp] + limit > config.maxCredits) limit = Math.max(0, config.maxCredits - requests[userIp]);
-			requests[userIp] += Math.max(10, limit);
+			if (rateLimit) requests[userIp] += Math.max(10, limit);
 		}
 		
 		let select = includePlayers ? `s.*, p.playerHistory` : '*';
@@ -713,7 +713,7 @@ module.exports = async ({ req, res, pool, requests, streamServers }) => {
 				return;
 			}
 			if (requests[userIp] + limit > config.maxCredits) limit = Math.max(0, config.maxCredits - requests[userIp]);
-			requests[userIp] += 100;
+			if (rateLimit) requests[userIp] += 100;
 		}
 		
 		let cteServers = `WITH servers AS (SELECT DISTINCT ON (p.serverId) s.* FROM playerhistory p JOIN servers s ON s.serverId = p.serverId WHERE ${cteConditions.map(a => `(${a})`).join(' AND ')})`;
@@ -749,7 +749,7 @@ module.exports = async ({ req, res, pool, requests, streamServers }) => {
 				return;
 			}
 			if (requests[userIp] + limit > config.maxCredits) limit = Math.max(0, config.maxCredits - requests[userIp]);
-			requests[userIp] += Math.max(10, limit);
+			if (rateLimit) requests[userIp] += Math.max(10, limit);
 		}
 		
 		let query = `SELECT * FROM bedrock b ${conditions.length > 0 ? 'WHERE' : ''} ${conditions.map(a => `(${a})`).join(' AND ')} ${sort == null ? '' : `ORDER BY ${sort} ${descending ? 'DESC' : ''}`} LIMIT ${limit} OFFSET ${skip}`
@@ -814,7 +814,7 @@ module.exports = async ({ req, res, pool, requests, streamServers }) => {
 				return;
 			}
 			if (requests[userIp] + limit > config.maxCredits) limit = Math.max(0, config.maxCredits - requests[userIp]);
-			requests[userIp] += 100;
+			if (rateLimit) requests[userIp] += 100;
 		}
 		
 		let query = `SELECT COUNT(*) FROM bedrock b ${conditions.length > 0 ? 'WHERE' : ''} ${conditions.map(a => `(${a})`).join(' AND ')}`;
