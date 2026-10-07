@@ -11,7 +11,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 			case 'playerCount': {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
-				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "playerCount" (${item} is not a number)` };
+				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Недопустимое значение для параметра "playerCount" (${item} не является числом)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.playerCount = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
 				break;
@@ -19,7 +19,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 			case 'minPlayers': {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
-				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "minPlayers" (${item} is not a number)` };
+				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Недопустимое значение для параметра "minPlayers" (${item} не является числом)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.playerCount >= $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
 				break;
@@ -27,7 +27,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 			case 'maxPlayers': {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
-				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "maxPlayers" (${item} is not a number)` };
+				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Недопустимое значение для параметра "maxPlayers" (${item} не является числом)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.playerCount <= $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
 				break;
@@ -35,7 +35,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 			case 'playerLimit': {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
-				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "playerLimit" (${item} is not a number)` };
+				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Недопустимое значение для параметра "playerLimit" (${item} не является числом)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.playerLimit = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
 				break;
@@ -44,7 +44,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
 				value = value.map(a => a.toString().toLowerCase());
-				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Invalid value for parameter "full" (${item} is not a boolean)` };
+				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Недопустимое значение для параметра "full" (${item} не является булевым)` };
 				conditions.push(`${Array(value.length).fill().map((a, i) => `s.playerCount ${value[i] == 'true' ? '>=' : '<'} s.playerLimit`).join(' OR ')}`);
 				break;
 			}
@@ -90,7 +90,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 			case 'protocol': {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
-				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "protocol" (${item} is not a number)` };
+				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Недопустимое значение для параметра "protocol" (${item} не является числом)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.protocol = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
 				break;
@@ -99,7 +99,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
 				value = value.map(a => a.toString().toLowerCase());
-				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Invalid value for parameter "hasFavicon" (${item} is not a boolean)` };
+				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Недопустимое значение для параметра "hasFavicon" (${item} не является булевым)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.hasFavicon = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => a == 'true'));
 				break;
@@ -122,7 +122,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
 				value = value.map(a => a.toString().toLowerCase());
-				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Invalid value for parameter "hasPlayerSample" (${item} is not a boolean)` };
+				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Недопустимое значение для параметра "hasPlayerSample" (${item} не является булевым)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.hasPlayerSample = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => a == 'true'));
 				break;
@@ -130,7 +130,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 			case 'seenAfter': {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
-				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "seenAfter" (${item} is not a number)` };
+				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Недопустимое значение для параметра "seenAfter" (${item} не является числом)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.lastSeen > $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
 				break;
@@ -138,7 +138,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 			case 'seenBefore': {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
-				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "seenBefore" (${item} is not a number)` };
+				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Недопустимое значение для параметра "seenBefore" (${item} не является числом)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.lastSeen < $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
 				break;
@@ -146,7 +146,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 			case 'ip': {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
-				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "ip" (${item} is not a number)` };
+				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Недопустимое значение для параметра "ip" (${item} не является числом)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.ip = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a - 2147483648)));
 				break;
@@ -154,7 +154,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 			case 'minIp': {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
-				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "minIp" (${item} is not a number)` };
+				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Недопустимое значение для параметра "minIp" (${item} не является числом)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.ip >= $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a - 2147483648)));
 				break;
@@ -162,7 +162,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 			case 'maxIp': {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
-				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "maxIp" (${item} is not a number)` };
+				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Недопустимое значение для параметра "maxIp" (${item} не является числом)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.ip <= $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a - 2147483648)));
 				break;
@@ -170,7 +170,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 			case 'port': {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
-				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "port" (${item} is not a number)` };
+				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Недопустимое значение для параметра "port" (${item} не является числом)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.port = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a - 32768)));
 				break;
@@ -179,7 +179,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
 				value = value.map(a => a.toString().toLowerCase());
-				for (let item of value) if (!['true', 'false', 'null'].includes(item)) return { error: `Invalid value for parameter "enforcesSecureChat" (${item} is not a boolean)` };
+				for (let item of value) if (!['true', 'false', 'null'].includes(item)) return { error: `Недопустимое значение для параметра "enforcesSecureChat" (${item} не является булевым)` };
 				conditions.push(`${Array(value.length).fill().map((a, i) => value[i] == 'null' ? 's.enforcessecurechat IS NULL' : `s.enforcessecurechat = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.filter(a => a != 'null').map(a => a == 'true'));
 				break;
@@ -202,7 +202,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
 				value = value.map(a => a.toString().toLowerCase());
-				for (let item of value) if (!['true', 'false', 'null'].includes(item)) return { error: `Invalid value for parameter "cracked" (${item} is not a boolean)` };
+				for (let item of value) if (!['true', 'false', 'null'].includes(item)) return { error: `Недопустимое значение для параметра "cracked" (${item} не является булевым)` };
 				conditions.push(`${Array(value.length).fill().map((a, i) => value[i] == 'null' ? 's.cracked IS NULL' :  `s.cracked = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.filter(a => a != 'null').map(a => a == 'true'));
 				break;
@@ -211,7 +211,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
 				value = value.map(a => a.toString().toLowerCase());
-				for (let item of value) if (!['true', 'false', 'null'].includes(item)) return { error: `Invalid value for parameter "whitelisted" (${item} is not a boolean)` };
+				for (let item of value) if (!['true', 'false', 'null'].includes(item)) return { error: `Недопустимое значение для параметра "whitelisted" (${item} не является булевым)` };
 				conditions.push(`${Array(value.length).fill().map((a, i) => value[i] == 'null' ? 's.whitelisted IS NULL'  : `s.whitelisted = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.filter(a => a != 'null').map(a => a == 'true'));
 				break;
@@ -220,7 +220,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
 				value = value.map(a => a.toString().toLowerCase());
-				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Invalid value for parameter "vanilla" (${item} is not a boolean)` };
+				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Недопустимое значение для параметра "vanilla" (${item} не является булевым)` };
 				value = value.map(a => a == 'true');
 				conditions.push(`${Array(value.length).fill().map((a, i) => `s.hasForgeData = ${!value[i]} ${value[i] ? 'AND' : 'OR'} s.version ${value[i] ? '' : 'NOT'} SIMILAR TO '[0-9]\.[0-9]{1,2}(\.[0-9])?'`).join(' OR ')}`);
 				break;
@@ -229,13 +229,13 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
 				value = value.map(a => a.toString().toLowerCase());
-				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Invalid value for parameter "forge" (${item} is not a boolean)` };
+				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Недопустимое значение для параметра "forge" (${item} не является булевым)` };
 				conditions.push(`${Array(value.length).fill().map(a => `s.hasForgeData = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => a == 'true'));
 				break;
 			}
 			default: {
-				return { error: `Unknown parameter "${arg}"` };
+				return { error: `Неизвестный параметр "${arg}"` };
 			}
 		}
 	}
@@ -245,7 +245,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
 				value = value.map(a => a.toString().toLowerCase());
-				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Invalid value for parameter "education" (${item} is not a boolean)` };
+				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Недопустимое значение для параметра "education" (${item} не является булевым)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.education = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => a == 'true'));
 				break;
@@ -253,7 +253,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 			case 'playerCount': {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
-				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "playerCount" (${item} is not a number)` };
+				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Недопустимое значение для параметра "playerCount" (${item} не является числом)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.playerCount = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
 				break;
@@ -261,7 +261,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 			case 'minPlayers': {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
-				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "minPlayers" (${item} is not a number)` };
+				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Недопустимое значение для параметра "minPlayers" (${item} не является числом)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.playerCount >= $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
 				break;
@@ -269,7 +269,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 			case 'maxPlayers': {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
-				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "maxPlayers" (${item} is not a number)` };
+				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Недопустимое значение для параметра "maxPlayers" (${item} не является числом)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.playerCount <= $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
 				break;
@@ -277,7 +277,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 			case 'playerLimit': {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
-				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "playerLimit" (${item} is not a number)` };
+				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Недопустимое значение для параметра "playerLimit" (${item} не является числом)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.playerLimit = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
 				break;
@@ -286,7 +286,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
 				value = value.map(a => a.toString().toLowerCase());
-				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Invalid value for parameter "full" (${item} is not a boolean)` };
+				for (let item of value) if (!['true', 'false'].includes(item)) return { error: `Недопустимое значение для параметра "full" (${item} не является булевым)` };
 				conditions.push(`${Array(value.length).fill().map((a, i) => `b.playerCount ${value[i] == 'true' ? '>=' : '<'} b.playerLimit`).join(' OR ')}`);
 				break;
 			}
@@ -300,7 +300,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 			case 'protocol': {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
-				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "protocol" (${item} is not a number)` };
+				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Недопустимое значение для параметра "protocol" (${item} не является числом)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.protocol = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
 				break;
@@ -315,7 +315,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 			case 'seenAfter': {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
-				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "seenAfter" (${item} is not a number)` };
+				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Недопустимое значение для параметра "seenAfter" (${item} не является числом)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.lastSeen > $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
 				break;
@@ -323,7 +323,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 			case 'seenBefore': {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
-				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "seenBefore" (${item} is not a number)` };
+				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Недопустимое значение для параметра "seenBefore" (${item} не является числом)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.lastSeen < $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a)));
 				break;
@@ -331,7 +331,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 			case 'ip': {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
-				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "ip" (${item} is not a number)` };
+				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Недопустимое значение для параметра "ip" (${item} не является числом)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.ip = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a - 2147483648)));
 				break;
@@ -339,7 +339,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 			case 'minIp': {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
-				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "minIp" (${item} is not a number)` };
+				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Недопустимое значение для параметра "minIp" (${item} не является числом)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.ip >= $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a - 2147483648)));
 				break;
@@ -347,7 +347,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 			case 'maxIp': {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
-				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "maxIp" (${item} is not a number)` };
+				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Недопустимое значение для параметра "maxIp" (${item} не является числом)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.ip <= $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a - 2147483648)));
 				break;
@@ -355,7 +355,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 			case 'port': {
 				if (!Array.isArray(value)) value = [value];
 				if (value.length == 0) return { placeholder };
-				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Invalid value for parameter "port" (${item} is not a number)` };
+				for (let item of value) if (isNaN(item) || isNaN(parseInt(item))) return { error: `Недопустимое значение для параметра "port" (${item} не является числом)` };
 				conditions.push(`${Array(value.length).fill().map(a => `b.port = $${placeholder++}`).join(' OR ')}`);
 				vars.push(...value.map(a => parseInt(a - 32768)));
 				break;
@@ -382,7 +382,7 @@ function addCondition(path, arg, value, cteConditions, conditions, vars, placeho
 				break;
 			}
 			default: {
-				return { error: `Unknown parameter "${arg}"` };
+				return { error: `Неизвестный параметр "${arg}"` };
 			}
 		}
 	}
@@ -422,13 +422,13 @@ module.exports = async ({ userIp, req, res, pool, requests }) => {
 		try {
 			body = JSON.parse(body);
 		} catch (err) {
-			res.end(JSON.stringify({ error: `Invalid body JSON: ${err}\n\n${body}` }));
+			res.end(JSON.stringify({ error: `Недопустимый JSON в теле запроса: ${err}\n\n${body}` }));
 			return;
 		}
 		try {
 			for (const item in body) args[item] = (typeof body[item] == 'string' ? body[item] : JSON.stringify(body[item]));
 		} catch (err) {
-			res.end(JSON.stringify({ error: 'Error handling request body' }))
+			res.end(JSON.stringify({ error: 'Ошибка обработки тела запроса' }))
 			return;
 		}
 	}
@@ -471,7 +471,7 @@ module.exports = async ({ userIp, req, res, pool, requests }) => {
 		if (args.sort != null) {
 			if (Array.isArray(args.sort)) args.sort = args.sort[0];
 			if (!['lastSeen', 'discovered'].includes(args.sort)) {
-				res.end(JSON.stringify({ error: `Invalid value for parameter "sort" (sorting by ${args.sort} is not supported)` }));
+				res.end(JSON.stringify({ error: `Недопустимое значение для параметра "sort" (сортировка по ${args.sort} не поддерживается)` }));
 				return;
 			}
 			if (args.sort == 'lastSeen') sort = 's.lastSeen';
@@ -480,11 +480,11 @@ module.exports = async ({ userIp, req, res, pool, requests }) => {
 		}
 		if (args.descending != null) {
 			if (!['true', 'false'].includes(args.descending)) {
-				res.end(JSON.stringify({ error: `Invalid value for parameter "descending" (${args.vanilla} is not a boolean)` }));
+				res.end(JSON.stringify({ error: `Недопустимое значение для параметра "descending" (${args.vanilla} не является булевым)` }));
 				return;
 			}
 			if (sort == null) {
-				res.end(JSON.stringify({ error: `Cannot use parameter "descending" without specifing a sort value` }));
+				res.end(JSON.stringify({ error: `Невозможно использовать параметр "descending" без указания значения сортировки` }));
 				return;
 			}
 			descending = args.descending == 'true';
@@ -494,7 +494,7 @@ module.exports = async ({ userIp, req, res, pool, requests }) => {
 		if (args.minIp != null || args.maxIp != null) {
 			if (Array.isArray(args.minIp) || Array.isArray(args.maxIp)) {
 				if (Math.abs(args.minIp.length - args.maxIp.length) > 1) {
-					res.end(JSON.stringify({ error: `Invalid use of parameters "minIp" or "maxIp" (number of minIp and maxIp parameters must be equal or differ by one)` }));
+					res.end(JSON.stringify({ error: `Недопустимое использование параметров "minIp" или "maxIp" (количество параметров minIp и maxIp должно быть равно или отличаться на единицу)` }));
 					return;
 				}
 			} else {
@@ -512,24 +512,24 @@ module.exports = async ({ userIp, req, res, pool, requests }) => {
 					let condition = '';
 					let len = Math.min(range.minIp.length, range.maxIp.length);
 					if (Math.abs(range.minIp.length - range.maxIp.length) > 1) {
-						res.end(JSON.stringify({ error: `Invalid length for parameter "${range.minIp.length > range.maxIp.length ? 'minIp' : 'maxIp'}" (lengths of minIp and maxIp must be equal or differ by one)` }));
+						res.end(JSON.stringify({ error: `Недопустимая длина для параметра "${range.minIp.length > range.maxIp.length ? 'minIp' : 'maxIp'}" (длины minIp и maxIp должны быть равны или отличаться на единицу)` }));
 						return;
 					}
 					for (const item of range.minIp) {
 						if (isNaN(item) || isNaN(parseInt(item))) {
-							res.end(JSON.stringify({ error: `Invalid value for parameter "minIp" (${item} is not a number)` }));
+							res.end(JSON.stringify({ error: `Недопустимое значение для параметра "minIp" (${item} не является числом)` }));
 							return;
 						} else if (parseInt(item) < 0 || parseInt(item) > 4294967295) {
-							res.end(JSON.stringify({ error: `Invalid value for parameter "minIp" (${item} is not a valid ip address)` }));
+							res.end(JSON.stringify({ error: `Недопустимое значение для параметра "minIp" (${item} не является допустимым IP-адресом)` }));
 							return;
 						}
 					}
 					for (const item of range.maxIp) {
 						if (isNaN(item) || isNaN(parseInt(item))) {
-							res.end(JSON.stringify({ error: `Invalid value for parameter "maxIp" (${item} is not a number)` }));
+							res.end(JSON.stringify({ error: `Недопустимое значение для параметра "maxIp" (${item} не является числом)` }));
 							return;
 						} else if (parseInt(item) < 0 || parseInt(item) > 4294967295) {
-							res.end(JSON.stringify({ error: `Invalid value for parameter "maxIp" (${item} is not a valid ip address)` }));
+							res.end(JSON.stringify({ error: `Недопустимое значение для параметра "maxIp" (${item} не является допустимым IP-адресом)` }));
 							return;
 						}
 					}
@@ -575,7 +575,7 @@ module.exports = async ({ userIp, req, res, pool, requests }) => {
 		if (args.sort != null) {
 			if (Array.isArray(args.sort)) args.sort = args.sort[0];
 			if (!['lastSeen', 'discovered'].includes(args.sort)) {
-				res.end(JSON.stringify({ error: `Invalid value for parameter "sort" (sorting by ${args.sort} is not supported)` }));
+				res.end(JSON.stringify({ error: `Недопустимое значение для параметра "sort" (сортировка по ${args.sort} не поддерживается)` }));
 				return;
 			}
 			if (args.sort == 'lastSeen') sort = 'b.lastSeen';
@@ -584,11 +584,11 @@ module.exports = async ({ userIp, req, res, pool, requests }) => {
 		}
 		if (args.descending != null) {
 			if (!['true', 'false'].includes(args.descending)) {
-				res.end(JSON.stringify({ error: `Invalid value for parameter "descending" (${args.vanilla} is not a boolean)` }));
+				res.end(JSON.stringify({ error: `Недопустимое значение для параметра "descending" (${args.vanilla} не является булевым)` }));
 				return;
 			}
 			if (sort == null) {
-				res.end(JSON.stringify({ error: `Cannot use parameter "descending" without specifing a sort value` }));
+				res.end(JSON.stringify({ error: `Невозможно использовать параметр "descending" без указания значения сортировки` }));
 				return;
 			}
 			descending = args.descending == 'true';
@@ -598,7 +598,7 @@ module.exports = async ({ userIp, req, res, pool, requests }) => {
 		if (args.minIp != null || args.maxIp != null) {
 			if (Array.isArray(args.minIp) || Array.isArray(args.maxIp)) {
 				if (Math.abs(args.minIp.length - args.maxIp.length) > 1) {
-					res.end(JSON.stringify({ error: `Invalid use of parameters "minIp" or "maxIp" (number of minIp and maxIp parameters must be equal or differ by one)` }));
+					res.end(JSON.stringify({ error: `Недопустимое использование параметров "minIp" или "maxIp" (количество параметров minIp и maxIp должно быть равно или отличаться на единицу)` }));
 					return;
 				}
 			} else {
@@ -616,24 +616,24 @@ module.exports = async ({ userIp, req, res, pool, requests }) => {
 					let condition = '';
 					let len = Math.min(range.minIp.length, range.maxIp.length);
 					if (Math.abs(range.minIp.length - range.maxIp.length) > 1) {
-						res.end(JSON.stringify({ error: `Invalid length for parameter "${range.minIp.length > range.maxIp.length ? 'minIp' : 'maxIp'}" (lengths of minIp and maxIp must be equal or differ by one)` }));
+						res.end(JSON.stringify({ error: `Недопустимая длина для параметра "${range.minIp.length > range.maxIp.length ? 'minIp' : 'maxIp'}" (длины minIp и maxIp должны быть равны или отличаться на единицу)` }));
 						return;
 					}
 					for (const item of range.minIp) {
 						if (isNaN(item) || isNaN(parseInt(item))) {
-							res.end(JSON.stringify({ error: `Invalid value for parameter "minIp" (${item} is not a number)` }));
+							res.end(JSON.stringify({ error: `Недопустимое значение для параметра "minIp" (${item} не является числом)` }));
 							return;
 						} else if (parseInt(item) < 0 || parseInt(item) > 4294967295) {
-							res.end(JSON.stringify({ error: `Invalid value for parameter "minIp" (${item} is not a valid ip address)` }));
+							res.end(JSON.stringify({ error: `Недопустимое значение для параметра "minIp" (${item} не является допустимым IP-адресом)` }));
 							return;
 						}
 					}
 					for (const item of range.maxIp) {
 						if (isNaN(item) || isNaN(parseInt(item))) {
-							res.end(JSON.stringify({ error: `Invalid value for parameter "maxIp" (${item} is not a number)` }));
+							res.end(JSON.stringify({ error: `Недопустимое значение для параметра "maxIp" (${item} не является числом)` }));
 							return;
 						} else if (parseInt(item) < 0 || parseInt(item) > 4294967295) {
-							res.end(JSON.stringify({ error: `Invalid value for parameter "maxIp" (${item} is not a valid ip address)` }));
+							res.end(JSON.stringify({ error: `Недопустимое значение для параметра "maxIp" (${item} не является допустимым IP-адресом)` }));
 							return;
 						}
 					}
@@ -677,11 +677,11 @@ module.exports = async ({ userIp, req, res, pool, requests }) => {
 
 	if (endpoint == 'playerHistory') {
 		if (args.ip == null) {
-			res.end(JSON.stringify({ error: `Missing required parameter "ip"` }));
+			res.end(JSON.stringify({ error: `Отсутствует обязательный параметр "ip"` }));
 			return;
 		} else {
 			if (isNaN(args.ip) || isNaN(parseInt(args.ip))) {
-				res.end(JSON.stringify({ error: `Invalid value for parameter "ip" (${args.ip} is not a number)` }));
+				res.end(JSON.stringify({ error: `Недопустимое значение для параметра "ip" (${args.ip} не является числом)` }));
 				return;
 			}
 			conditions.push(`s.ip = $${placeholder++}`);
@@ -689,11 +689,11 @@ module.exports = async ({ userIp, req, res, pool, requests }) => {
 			delete args.ip;
 		}
 		if (args.port == null) {
-			res.end(JSON.stringify({ error: `Missing required parameter "port"` }));
+			res.end(JSON.stringify({ error: `Отсутствует обязательный параметр "port"` }));
 			return;
 		} else {
 			if (isNaN(args.port) || isNaN(parseInt(args.port))) {
-				res.end(JSON.stringify({ error: `Invalid value for parameter "port" (${args.port} is not a number)` }));
+				res.end(JSON.stringify({ error: `Недопустимое значение для параметра "port" (${args.port} не является числом)` }));
 				return;
 			}
 			conditions.push(`s.port = $${placeholder++}`);
@@ -707,7 +707,7 @@ module.exports = async ({ userIp, req, res, pool, requests }) => {
 		if (!config.exclude.includes(userIp)) {
 			if (requests[userIp] >= config.maxCredits) {
 				res.statusCode = 429;
-				res.end(JSON.stringify({ error: `Too many requests (Limit: ${config.maxCredits.toLocaleString()} credits per hour)` }));
+				res.end(JSON.stringify({ error: `Слишком много запросов (Лимит: ${config.maxCredits.toLocaleString()} кредитов в час)` }));
 				return;
 			}
 			if (requests[userIp] + limit > config.maxCredits) limit = Math.max(0, config.maxCredits - requests[userIp]);
@@ -725,10 +725,10 @@ module.exports = async ({ userIp, req, res, pool, requests }) => {
 			console.error(err);
 			if (err.message.includes('canceling statement due to statement timeout')) {
 				res.statusCode = 503;
-				res.end(JSON.stringify({ error: 'Query timeout' }));
+				res.end(JSON.stringify({ error: 'Тайм-аут запроса' }));
 			} else {
 				res.statusCode = 500;
-				res.end(JSON.stringify({ error: 'Error constructing query' }));
+				res.end(JSON.stringify({ error: 'Ошибка построения запроса' }));
 			}
 			return;
 		}
@@ -771,7 +771,7 @@ module.exports = async ({ userIp, req, res, pool, requests }) => {
 		if (!config.exclude.includes(userIp)) {
 			if (requests[userIp] >= config.maxCredits) {
 				res.statusCode = 429;
-				res.end(JSON.stringify({ error: `Too many requests (Limit: ${config.maxCredits.toLocaleString()} credits per hour)` }));
+				res.end(JSON.stringify({ error: `Слишком много запросов (Лимит: ${config.maxCredits.toLocaleString()} кредитов в час)` }));
 				return;
 			}
 			if (requests[userIp] + limit > config.maxCredits) limit = Math.max(0, config.maxCredits - requests[userIp]);
@@ -789,10 +789,10 @@ module.exports = async ({ userIp, req, res, pool, requests }) => {
 			console.error(err);
 			if (err.message.includes('canceling statement due to statement timeout')) {
 				res.statusCode = 503;
-				res.end(JSON.stringify({ error: 'Query timeout' }));
+				res.end(JSON.stringify({ error: 'Тайм-аут запроса' }));
 			} else {
 				res.statusCode = 500;
-				res.end(JSON.stringify({ error: 'Error constructing query' }));
+				res.end(JSON.stringify({ error: 'Ошибка построения запроса' }));
 			}
 			return;
 		}
@@ -807,7 +807,7 @@ module.exports = async ({ userIp, req, res, pool, requests }) => {
 		if (!config.exclude.includes(userIp)) {
 			if (requests[userIp] >= config.maxCredits) {
 				res.statusCode = 429;
-				res.end(JSON.stringify({ error: `Too many requests (Limit: ${config.maxCredits.toLocaleString()} credits per hour)` }));
+				res.end(JSON.stringify({ error: `Слишком много запросов (Лимит: ${config.maxCredits.toLocaleString()} кредитов в час)` }));
 				return;
 			}
 			if (rateLimit) requests[userIp] += 5;
@@ -822,10 +822,10 @@ module.exports = async ({ userIp, req, res, pool, requests }) => {
 			console.error(err);
 			if (err.message.includes('canceling statement due to statement timeout')) {
 				res.statusCode = 503;
-				res.end(JSON.stringify({ error: 'Query timeout' }));
+				res.end(JSON.stringify({ error: 'Тайм-аут запроса' }));
 			} else {
 				res.statusCode = 500;
-				res.end(JSON.stringify({ error: 'Error constructing query' }));
+				res.end(JSON.stringify({ error: 'Ошибка построения запроса' }));
 			}
 			return;
 		}
@@ -844,7 +844,7 @@ module.exports = async ({ userIp, req, res, pool, requests }) => {
 		if (!config.exclude.includes(userIp)) {
 			if (requests[userIp] >= config.maxCredits) {
 				res.statusCode = 429;
-				res.end(JSON.stringify({ error: `Too many requests (Limit: ${config.maxCredits.toLocaleString()} credits per hour)` }));
+				res.end(JSON.stringify({ error: `Слишком много запросов (Лимит: ${config.maxCredits.toLocaleString()} кредитов в час)` }));
 				return;
 			}
 			if (requests[userIp] + limit > config.maxCredits) limit = Math.max(0, config.maxCredits - requests[userIp]);
@@ -860,10 +860,10 @@ module.exports = async ({ userIp, req, res, pool, requests }) => {
 			console.error(err);
 			if (err.message.includes('canceling statement due to statement timeout')) {
 				res.statusCode = 503;
-				res.end(JSON.stringify({ error: 'Query timeout' }));
+				res.end(JSON.stringify({ error: 'Тайм-аут запроса' }));
 			} else {
 				res.statusCode = 500;
-				res.end(JSON.stringify({ error: 'Error constructing query' }));
+				res.end(JSON.stringify({ error: 'Ошибка построения запроса' }));
 			}
 			return;
 		}
@@ -909,7 +909,7 @@ module.exports = async ({ userIp, req, res, pool, requests }) => {
 		if (!config.exclude.includes(userIp)) {
 			if (requests[userIp] >= config.maxCredits) {
 				res.statusCode = 429;
-				res.end(JSON.stringify({ error: `Too many requests (Limit: ${config.maxCredits.toLocaleString()} credits per hour)` }));
+				res.end(JSON.stringify({ error: `Слишком много запросов (Лимит: ${config.maxCredits.toLocaleString()} кредитов в час)` }));
 				return;
 			}
 			if (requests[userIp] + limit > config.maxCredits) limit = Math.max(0, config.maxCredits - requests[userIp]);
@@ -925,10 +925,10 @@ module.exports = async ({ userIp, req, res, pool, requests }) => {
 			console.error(err);
 			if (err.message.includes('canceling statement due to statement timeout')) {
 				res.statusCode = 503;
-				res.end(JSON.stringify({ error: 'Query timeout' }));
+				res.end(JSON.stringify({ error: 'Тайм-аут запроса' }));
 			} else {
 				res.statusCode = 500;
-				res.end(JSON.stringify({ error: 'Error constructing query' }));
+				res.end(JSON.stringify({ error: 'Ошибка построения запроса' }));
 			}
 			return;
 		}
