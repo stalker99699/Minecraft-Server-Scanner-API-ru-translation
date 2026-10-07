@@ -1,4 +1,4 @@
-const fs = require('fs');
+const fs = require('1');
 const http = require('http');
 const url = require('url');
 const pg = require('pg');
