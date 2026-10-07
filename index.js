@@ -20,7 +20,7 @@ let requests = {};
 try {
 	requests = JSON.parse(fs.readFileSync('requests.json').toString());
 } catch (err) {
-	console.error('requests.json missing or corrupted, creating new file.');
+	console.error('requests.json отсутствует или повреждён, создаю новый файл.');
 }
 for (let ip of config.exclude) if (requests[ip] != null) requests[ip] = 0;
 
@@ -33,14 +33,14 @@ let versions = {
 (async () => {
 	let cloudflareIpv4 = await fetch('https://www.cloudflare.com/ips-v4');
 	if (cloudflareIpv4.status != 200) {
-		console.log(`Couldn't fetch Cloudflare ip ranges (${cloudflareIpv4.status})`);
+		console.log(`Не удалось получить диапазоны IP Cloudflare (${cloudflareIpv4.status})`);
 		process.exit();
 	}
 	cloudflareIpv4 = (await cloudflareIpv4.text()).split('\n').map(a => a.trim());
 
 	let cloudflareIpv6 = await fetch('https://www.cloudflare.com/ips-v6');
 	if (cloudflareIpv6.status != 200) {
-		console.log(`Couldn't fetch Cloudflare ip ranges (${cloudflareIpv6.status})`);
+		console.log(`Не удалось получить диапазоны IP Cloudflare (${cloudflareIpv6.status})`);
 		process.exit();
 	}
 	cloudflareIpv6 = (await cloudflareIpv6.text()).split('\n').map(a => a.trim());
@@ -54,7 +54,7 @@ let versions = {
 		let address = v6 ? ipAddress.Address6 : ipAddress.Address4;
 		for (let i = 0; i < cloudflareAddresses.length && !isCloudflare; i++) if ((new address(userIp)).isInSubnet(new address(cloudflareAddresses[i]))) isCloudflare = true;
 		if (config.cloudflare & !isCloudflare && !config.exclude.includes(userIp)) {
-			console.log(`Dropping non-cloudflare request (${userIp})`);
+			console.log(`Отклонён запрос не от Cloudflare (${userIp})`);
 			return;
 		}
 		if (isCloudflare) {
@@ -69,7 +69,7 @@ let versions = {
 			return res.end();
 		} else versions[version]({ userIp, req, res, pool, requests, streamServers });
 	}).listen(config.port);
-	console.log(`Listening on port ${config.port}...`)
+	console.log(`Прослушивание порта ${config.port}...`)
 })();
 
 setInterval(async () => {
@@ -107,7 +107,7 @@ async function fetchStreams() {
 				'Authorization': `Bearer ${twitchAccessToken}`
 			}
 		}
-		if (config.twitch.log) console.log('[Twitch] Fetching streams...');
+		if (config.twitch.log) console.log('[Twitch] Получение стримов...');
 		let response = await (await fetch('https://api.twitch.tv/helix/streams?game_id=27471&first=100', options)).json();
 		streams = response.data;
 		do {
@@ -116,9 +116,9 @@ async function fetchStreams() {
 				streams = streams.concat(response.data);
 			} catch (err) {}
 		} while (response.pagination?.cursor != null)
-		if (config.twitch.log) console.log(`[Twitch] Fetched ${streams.length} streams.`);
+		if (config.twitch.log) console.log(`[Twitch] Получено ${streams.length} стримов.`);
 	
-		if (config.twitch.log) console.log('[Twitch] Fetching servers...');
+		if (config.twitch.log) console.log('[Twitch] Получение серверов...');
 		let placeholder = 1;
 		let result = await pool.query(`
 			WITH servers AS (SELECT DISTINCT ON (p.serverId) s.*
@@ -170,9 +170,9 @@ async function fetchStreams() {
 				.slice(0, 10);
 		}
 		streamServers = streamServers.filter(a => a.streams.length > 0);
-		if (config.twitch.log) console.log(`[Twitch] Fetched ${streamServers.length} servers.`);
+		if (config.twitch.log) console.log(`[Twitch] Получено ${streamServers.length} серверов.`);
 	} catch (err) {
-		console.error('Error fetching streamsnipes:');
+		console.error('Ошибка при получении streamsnipes:');
 		console.error(err);
 	}
 
