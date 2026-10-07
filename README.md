@@ -1,2 +1,2 @@
 # Minecraft-Server-Scanner-API
-An API to fetch from my server database. The servers are found by the [scanner](https://github.com/kgurchiek/Minecraft-Server-Scanner), updated and written to the database by the [rescanner](https://github.com/kgurchiek/Minecraft-Server-Rescanner). This API is used by https://github.com/kgurchiek/Minecraft-Server-Scanner-Discord-Bot
+API для получения данных из моей базы данных серверов. Серверы находятся [сканером](https://github.com/kgurchiek/Minecraft-Server-Scanner), обновляются и записываются в базу данных [повторным сканером](https://github.com/kgurchiek/Minecraft-Server-Rescanner). Этот API используется в https://github.com/kgurchiek/Minecraft-Server-Scanner-Discord-Bot
