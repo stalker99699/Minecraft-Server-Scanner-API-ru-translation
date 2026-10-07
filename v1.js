@@ -4,7 +4,7 @@ const querystring = require('querystring');
 const favicon = fs.readFileSync('favicon.ico');
 const config = require('./config.json');
 
-function addCondition(path, 1, value, cteConditions, conditions, vars, placeholder) {
+function addCondition(path, arg, value, cteConditions, conditions, vars, placeholder) {
 	if (value == null) value = 'null';
 	if (['servers', 'count'].includes(path)) {
 		switch (arg) {
